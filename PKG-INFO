@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: SAGEDbias
-Version: 0.0.13
+Version: 0.0.14
 Summary: LLM bias package with customizable benchmark building and analytical tools
 Author: HolisticAI
 Requires-Python: >=3.10,<4.0

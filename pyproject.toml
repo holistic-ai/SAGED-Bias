@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "SAGEDbias"
-version = "0.0.13"
+version = "0.0.14"
 description = "LLM bias package with customizable benchmark building and analytical tools"
 authors = ["HolisticAI"]
 readme = "README.md"
