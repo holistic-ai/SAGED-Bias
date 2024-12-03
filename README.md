@@ -10,6 +10,10 @@
 
 SAGED(-Bias) is the first comprehensive benchmarking pipeline designed to detect and mitigate bias in large language models. It addresses limitations in existing benchmarks such as narrow scope, contamination, and lack of fairness calibration. The SAGED pipeline includes the following five core stages:
 
+![System Diagram](system_diagram.png)
+
+This diagram illustrates the core stages of the SAGED pipeline:
+
 1. **Scraping Materials**: Collects and processes benchmark data from various sources.
 2. **Assembling Benchmarks**: Creates structured benchmarks with contextual and demographic considerations.
 3. **Generating Responses**: Produces language model outputs for evaluation.
