@@ -3,6 +3,7 @@ import pandas as pd
 import json
 from saged import SAGEDData
 
+
 @pytest.fixture
 def sample_data():
     # Sample data for tests
