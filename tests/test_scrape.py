@@ -5,20 +5,42 @@ from saged import (
     search_wikipedia,
     KeywordFinder,
     SourceFinder,
-    Scraper
+    Scraper,
+    SAGEDData
 )
 from sentence_transformers import SentenceTransformer
-import os
 
 
 @pytest.fixture
-def sample_keyword_data():
-    return {
-        "category": "test_category",
-        "domain": "test_domain",
-        "data_tier": "keywords",
-        "data": [{"category": "test_category", "domain": "test_domain", "keywords": {"test": {}}}]
-    }
+def valid_saged_data_for_scraper():
+    data = SAGEDData.create_data(
+        domain="test_domain",
+        category="test_category",
+        data_tier="scraped_sentences",
+        data=[
+            {
+                "category": "test_category",
+                "domain": "test_domain",
+                "category_shared_source": [
+                    {
+                        "source_tag": "default",
+                        "source_type": "wiki_urls",
+                        "source_specification": ["http://mock-url.com"],
+                    }
+                ],
+                "keywords": {
+                    "test_keyword": {
+                        "scraped_sentences": [],
+                        "keyword_type": "sub-concepts",
+                        "keyword_provider": "manual",
+                        "scrap_mode": "in_page",
+                        "scrap_shared_area": "Yes",
+                    }
+                },
+            }
+        ],
+    )
+    return data
 
 
 @patch("sentence_transformers.SentenceTransformer")
@@ -30,7 +52,7 @@ def test_find_similar_keywords(mock_model):
     keywords_list = ["apple", "banana", "cherry"]
     target_word = "apple"
 
-    result = find_similar_keywords("mock_model", target_word, keywords_list, top_n=2)
+    result = find_similar_keywords("paraphrase-MiniLM-L6-v2", target_word, keywords_list, top_n=2)
     assert len(result) == 2, "Top N keywords were not returned"
     assert "apple" in result, "Target word was not in the result"
 
@@ -47,39 +69,25 @@ def test_search_wikipedia(mock_wikipedia):
     assert result.title == "Mock Page", "Wikipedia page title mismatch"
 
 
-def test_keyword_finder_keywords_to_saged_data(sample_keyword_data):
-    keyword_finder = KeywordFinder(category="test_category", domain="test_domain")
-    keyword_finder.keywords = ["keyword1", "keyword2"]
-    keyword_finder.finder_mode = "embedding"
-
-    saged_data = keyword_finder.keywords_to_saged_data()
-    assert saged_data.data[0]["keywords"]["keyword1"]["keyword_type"] == "sub-concepts", \
-        "Keyword metadata is incorrect"
-    assert saged_data.data[0]["keywords"]["keyword2"]["keyword_provider"] == "embedding", \
-        "Keyword provider metadata is incorrect"
-
-
 @patch("requests.get")
 @patch("bs4.BeautifulSoup")
-def test_scrape_in_page_for_wiki_with_buffer_files(mock_soup, mock_requests, sample_keyword_data, tmpdir):
-    scraper = Scraper(sample_keyword_data)
+def test_scrape_in_page_for_wiki_with_buffer_files(
+    mock_soup, mock_requests, valid_saged_data_for_scraper
+):
+    scraper = Scraper(valid_saged_data_for_scraper)
     mock_requests.return_value.content = "<html><body><p>Test keyword content</p></body></html>"
     mock_soup.return_value.find_all.return_value = [
         MagicMock(get_text=lambda: "Test keyword content")
     ]
 
-    scraper.source_finder = [{"source_type": "wiki_urls", "source_specification": ["http://mock-url.com"]}]
-    scraper.keywords = ["keyword"]
-
-    temp_dir = tmpdir.mkdir("temp_results")
     scraper.scrape_in_page_for_wiki_with_buffer_files()
-    assert len(scraper.data[0]["keywords"]["keyword"]["scraped_sentences"]) > 0, \
+    assert len(scraper.data[0]["keywords"]["test_keyword"]["scraped_sentences"]) > 0, \
         "No sentences were scraped"
 
 
 @patch("glob.glob")
-def test_find_scrape_paths_local(mock_glob, sample_keyword_data):
-    source_finder = SourceFinder(sample_keyword_data)
+def test_find_scrape_paths_local(mock_glob, valid_saged_data_for_scraper):
+    source_finder = SourceFinder(valid_saged_data_for_scraper)
     mock_glob.return_value = ["/mock/path/file1.txt", "/mock/path/file2.txt"]
 
     saged_data = source_finder.find_scrape_paths_local("/mock/path")

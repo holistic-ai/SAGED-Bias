@@ -32,7 +32,7 @@ jobs:
     - name: Install Hatch
       run: |
         python -m pip install --upgrade pip
-        pip install hatch
+        pip install hatch pytest pytest-cov
 
     # Create and update the Hatch environment
     - name: Create Hatch Environment
@@ -44,7 +44,6 @@ jobs:
       run: |
         hatch run pip list
 
-    
 
     # Debug: Show Python Path
     - name: Show Python Path
