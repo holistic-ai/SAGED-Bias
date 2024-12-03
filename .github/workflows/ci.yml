@@ -29,10 +29,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install poetry
 
-    # Install dependencies and the project
+    # Install dependencies and pytest explicitly
     - name: Install dependencies
       run: |
         poetry install
+        python -m pip install pytest pytest-cov
 
     # Set PYTHONPATH
     - name: Set PYTHONPATH
