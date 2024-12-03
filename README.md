@@ -1,8 +1,8 @@
 # SAGED: A Holistic Bias-Benchmarking Pipeline for Language Models with Customisable Fairness Calibration
 
 
-![ArXiv Badge](https://img.shields.io/badge/ArXiv-2409.11149-red) ![License Badge](https://img.shields.io/badge/License-MIT-blue)
-
+[![ArXiv](https://img.shields.io/badge/ArXiv-2409.11149-red)](https://arxiv.org/abs/2409.11149) 
+![License](https://img.shields.io/badge/License-MIT-blue)
 
 **Authors**: Xin Guan, Nathaniel Demchak, Saloni Gupta, Ze Wang, Ediz Ertekin Jr., Adriano Koshiyama, Emre Kazim, Zekun Wu  
 **Conference**: COLING 2025 Main Conference  
