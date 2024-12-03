@@ -44,13 +44,7 @@ jobs:
       run: |
         hatch run pip list
 
-
-    # Debug: Show Python Path
-    - name: Show Python Path
-      run: |
-        hatch run python -c "import sys; print(sys.path)"
-
     # Run tests
     - name: Run tests
       run: |
-        hatch run pytest tests --cache-clear --cov=saged --cov-report=term
+        hatch run test
