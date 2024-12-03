@@ -54,4 +54,4 @@ jobs:
     # Run tests
     - name: Run tests
       run: |
-        hatch run test
+        hatch run pytest tests --cache-clear --cov=saged --cov-report=term
