@@ -23,33 +23,33 @@ jobs:
       with:
         python-version: "3.10"
 
-    # Install Poetry
-    - name: Install Poetry
+    # Install Hatch
+    - name: Install Hatch
       run: |
         python -m pip install --upgrade pip
-        pip install poetry pytest pytest-cov
+        pip install hatch
 
-    # Install dependencies with Poetry
-    - name: Install dependencies
+    # Create and update the Hatch environment
+    - name: Create Hatch Environment
       run: |
-        poetry install
+        hatch env create
+
+    # Debug: List installed packages
+    - name: List installed packages
+      run: |
+        hatch run pip list
 
     # Set PYTHONPATH
     - name: Set PYTHONPATH
       run: |
         export PYTHONPATH=$PYTHONPATH:$(pwd)
 
-    # Debug: Show Python path
+    # Debug: Show Python Path
     - name: Show Python Path
       run: |
-        python -c "import sys; print(sys.path)"
-
-    # Debug: List installed packages
-    - name: List installed packages
-      run: |
-        poetry show
+        hatch run python -c "import sys; print(sys.path)"
 
     # Run tests
     - name: Run tests
       run: |
-        poetry run pytest --cov=saged --cov-report=xml
+        hatch run test

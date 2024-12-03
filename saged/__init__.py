@@ -27,4 +27,4 @@ __all__ = [
     'ignore_future_warnings'
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.0.14"
