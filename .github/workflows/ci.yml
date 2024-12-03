@@ -29,18 +29,27 @@ jobs:
         python -m pip install --upgrade pip
         pip install poetry
 
-    # Install dependencies and pytest explicitly
+    # Install dependencies with Poetry
     - name: Install dependencies
       run: |
         poetry install
-        python -m pip install pytest pytest-cov
 
     # Set PYTHONPATH
     - name: Set PYTHONPATH
       run: |
         export PYTHONPATH=$PYTHONPATH:$(pwd)
 
+    # Debug: Show Python path
+    - name: Show Python Path
+      run: |
+        python -c "import sys; print(sys.path)"
+
+    # Debug: List installed packages
+    - name: List installed packages
+      run: |
+        poetry show
+
     # Run tests
     - name: Run tests
       run: |
-        pytest --cov=saged --cov-report=xml
+        poetry run pytest --cov=saged --cov-report=xml
