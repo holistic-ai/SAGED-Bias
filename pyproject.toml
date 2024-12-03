@@ -33,15 +33,15 @@ dependencies = [
   "sentence-transformers>=3.0.0"
 ]
 
-[project.optional-dependencies]
-testing = [
-  "pytest>=7.0",
-  "pytest-cov>=4.0"
-]
-all = [
-  "pytest>=7.0",
-  "pytest-cov>=4.0",
-]
+#[project.optional-dependencies]
+#testing = [
+#  "pytest>=7.0",
+#  "pytest-cov>=4.0"
+#]
+#all = [
+#  "pytest>=7.0",
+#  "pytest-cov>=4.0",
+#]
 
 [project.urls]
 Documentation = "https://github.com/holistic-ai/SAGED-Bias#readme"
@@ -87,8 +87,10 @@ dependencies = [
   "pytest>=7.0",
   "pytest-cov>=4.0",
 ]
-scripts = { test = ["pytest tests --cache-clear --cov=saged --cov-report=xml"] }
 env-vars = { PYTHONPATH = "." }
+
+[tool.hatch.envs.testing.scripts]
+test = ["pytest tests --cache-clear --cov=saged --cov-report=xml"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["saged"]
