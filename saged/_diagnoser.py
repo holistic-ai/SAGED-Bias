@@ -200,6 +200,7 @@ class DisparityDiagnoser:
                 if ('standard_assign' in kwargs) and kwargs['standard_assign'] and 'sd_extract_fn' in kwargs:
                     sd_extract_fn = kwargs['sd_extract_fn']  # extract the standard
                     standard_dict = sd_extract_fn(df_2.drop(columns = combo))
+                    # print(standard_dict)
                     def summary_function(x): return copy_summary_function(x, standard_dict)
 
                 grouped = df_2.groupby(combo)
@@ -619,10 +620,17 @@ class DisparityDiagnoser:
             elif standard_by.startswith('percentile_range'):
                 try:
                     p = float(standard_by.split('=')[1])
-                    return np.percentile(data, p)
+                    return float(np.percentile(data, p))
                 except (IndexError, ValueError):
                     raise ValueError(
                         "For percentile_range, use the format 'percentile_range=25' for the 25th percentile")
+            elif standard_by.startswith('fixed'):
+                try:
+                    p = float(standard_by.split('=')[1])
+                    return p
+                except (IndexError, ValueError):
+                    raise ValueError(
+                        "For percentile_range, use the format 'fixed=0.4' for the 0.4 distance")
             else:
                 raise ValueError(
                     "Invalid measure specified. Use 'mean', 'median', 'mode', 'quantile_range=q', or 'percentile_range=p'.")
@@ -704,6 +712,4 @@ class DisparityDiagnoser:
         # Define function name for identification
         function_name = f'correlation_wrt_{baseline}_method_{method}'
         return self.customized_statistics(summary_custom_agg, function_name, custom_agg=True, **kwargs)
-
-
 

@@ -10,13 +10,13 @@ tqdm.pandas()
 class SAGEDData:
 
     tier_order = {value: index for index, value in
-                  enumerate(['keywords', 'source_finder', 'scrapped_sentences', 'split_sentences', 'questions'])}
+                  enumerate(['keywords', 'source_finder', 'scraped_sentences', 'split_sentences', 'questions'])}
 
-    default_source_finder_format = [{
+    default_source_item = {
         "source_tag": "default",
         "source_type": "unknown",
         "source_specification": []
-    }]
+    }
 
     default_keyword_metadata = {
         "keyword_type": "sub-concepts",
@@ -30,13 +30,14 @@ class SAGEDData:
         "scrap_shared_area": "Yes"
     }
 
+
     def __init__(self, domain, category, data_tier, file_name=None):
         self.domain = domain
         self.category = category
         self.data_tier = data_tier
-        assert data_tier in ['keywords', 'source_finder', 'scrapped_sentences',
-                             'split_sentences', 'questions'], "Invalid data tier. Choose from 'keywords', 'source_finder', 'scrapped_sentences', 'split_sentences', 'questions'."
-        # self.tier_order = {value: index for index, value in enumerate(['keywords', 'source_finder', 'scrapped_sentences', 'split_sentences'])}
+        assert data_tier in ['keywords', 'source_finder', 'scraped_sentences',
+                             'split_sentences', 'questions'], "Invalid data tier. Choose from 'keywords', 'source_finder', 'scraped_sentences', 'split_sentences', 'questions'."
+        # self.tier_order = {value: index for index, value in enumerate(['keywords', 'source_finder', 'scraped_sentences', 'split_sentences'])}
         self.file_name = file_name
         self.data = [{
             "category": self.category,
@@ -47,12 +48,12 @@ class SAGEDData:
 
         def check_source_finder_format(source_finder):
             assert isinstance(source_finder,
-                              list), "source_finder should be a list of scrap resource dictionary"
+                              list), "source_finder should be a list of Sources dictionary"
             for source_finder in source_finder:
                 assert isinstance(source_finder, dict), "Each item in the source_finder list should be a dictionary"
                 source_finder_keys = {"source_tag", "source_type", "source_specification"}
                 assert source_finder_keys == set(
-                    source_finder.keys()), f"The scrap area dictionary should contain only the keys {source_finder_keys}"
+                    source_finder.keys()), f"The Sources dictionary should contain only the keys {source_finder_keys}"
                 assert source_finder['source_type'] in ['local_paths', 'wiki_urls',
                                                          'general_links', 'unknown'], "source_type should be either 'local_paths', 'wiki_urls','general_links', or 'unknown'."
                 assert isinstance(source_finder['source_specification'],
@@ -61,9 +62,9 @@ class SAGEDData:
         if source_finder_only:
             return check_source_finder_format
 
-        assert data_tier in ['keywords', 'source_finder', 'scrapped_sentences',
-                             'split_sentences', 'questions'], "Invalid data tier. Choose from 'keywords', 'source_finder', 'scrapped_sentences', 'split_sentences', 'questions'."
-        if data_tier in ['keywords', 'source_finder', 'scrapped_sentences']:
+        assert data_tier in ['keywords', 'source_finder', 'scraped_sentences',
+                             'split_sentences', 'questions'], "Invalid data tier. Choose from 'keywords', 'source_finder', 'scraped_sentences', 'split_sentences', 'questions'."
+        if data_tier in ['keywords', 'source_finder', 'scraped_sentences']:
             assert isinstance(data, list), "Data should be a list of dictionaries."
             for item in data:
                 assert isinstance(item, dict), "Each item in the list should be a dictionary."
@@ -71,7 +72,7 @@ class SAGEDData:
                 assert 'domain' in item, "Each dictionary should have a 'domain' key."
                 assert 'category' in item, "Each dictionary should have a 'category' key."
 
-                if data_tier in ['source_finder', 'scrapped_sentences']:
+                if data_tier in ['source_finder', 'scraped_sentences']:
                     assert 'category_shared_source' in item, "Each dictionary should have a 'category_shared_source' key"
                     source_finder = item['category_shared_source']
                     check_source_finder_format(source_finder)
@@ -83,10 +84,10 @@ class SAGEDData:
                     assert isinstance(v, dict), f"The value of keyword '{k}' should be a dictionary"
                     required_keys = {"keyword_type", "keyword_provider", "scrap_mode",
                                      "scrap_shared_area"}
-                    if data_tier == 'scrapped_sentences':
-                        required_keys.add('scrapped_sentences')
-                        assert isinstance(v['scrapped_sentences'],
-                                          list), "scrapped_sentences should be a list of sentences"
+                    if data_tier == 'scraped_sentences':
+                        required_keys.add('scraped_sentences')
+                        assert isinstance(v['scraped_sentences'],
+                                          list), "scraped_sentences should be a list of sentences"
 
 
                     # check targeted_source format
@@ -97,7 +98,6 @@ class SAGEDData:
                         required_keys.remove('targeted_source')
                         check_source_finder_format(v['targeted_source'])
                     else:
-                        print(v.keys())
                         assert required_keys == set(
                             v.keys()), f"The keywords dictionary of '{k}' should contain only the keys {required_keys}."
 
@@ -152,15 +152,15 @@ class SAGEDData:
                 instance.data = [{
                     "category": category,
                     "domain": domain,
-                    "category_shared_source": cls.default_source_finder_format,
+                    "category_shared_source": [cls.default_source_item],
                     "keywords": {}
                 }]
                 return instance
-            elif data_tier == 'scrapped_sentences':
+            elif data_tier == 'scraped_sentences':
                 instance.data = [{
                     "category": category,
                     "domain": domain,
-                    "category_shared_source": cls.default_source_finder_format,
+                    "category_shared_source": [cls.default_source_item],
                     "keywords": {}
                 }]
                 return instance
@@ -197,20 +197,23 @@ class SAGEDData:
             if mode == 'short':
                 for item in self.data:
                     print(f"Category: {item['category']}, Domain: {item['domain']}")
-                    print(f"  Scrap Area: {item['category_shared_source']}")
+                    for source_list in item['category_shared_source']:
+                        print(f"  Sources: {source_list['source_specification']}")
             if mode == 'details':
                 for item in self.data:
                     print(f"Category: {item['category']}, Domain: {item['domain']}")
-                    print(f"  Scrap Area: {item['category_shared_source']}")
+                    print(f"  Sources: {item['category_shared_source']}")
                     for keyword, metadata in item['keywords'].items():
                         print(f"  Keyword: {keyword}, targeted_source: {metadata.get('targeted_source')}")
-        elif data_tier == 'scrapped_sentences':
+        elif data_tier == 'scraped_sentences':
             if keyword == None:
                 for item in self.data:
                     print(f"Category: {item['category']}, Domain: {item['domain']}")
-                    print(f"  Scrap Area: {item['category_shared_source']}")
+                    for source_list in item['category_shared_source']:
+                        print(f"  Sources: {source_list['source_specification']}")
                     for keyword, metadata in item['keywords'].items():
-                        print(f"  Keyword: {keyword}, targeted_source: {metadata.get('scrapped_sentences')}")
+                        sentences = [i for i, _ in metadata.get('scraped_sentences')]
+                        print(f"  Keyword '{keyword}' sentences: {sentences}")
         elif data_tier == 'split_sentences':
             print("Split sentences are in a DataFrame")
             print(self.data)
@@ -250,12 +253,12 @@ class SAGEDData:
                 for sa_dict in item['category_shared_source']:
                     sa_dict['source_specification'] = remove_element_from_list(sa_dict['source_specification'],
                                                                                    entity)
-                    print(f"Scrap area '{entity}' removed from the {sa_dict}.")
+                    print(f"Sources '{entity}' removed from the {sa_dict}.")
                 for kw_dict in item['keywords']:
                     for sa_dict in kw_dict['targeted_source']:
                         sa_dict['source_specification'] = remove_element_from_list(
                             sa_dict['source_specification'], entity)
-                        print(f"Scrap area '{entity}' removed from the {sa_dict}.")
+                        print(f"Sources '{entity}' removed from the {sa_dict}.")
 
         if data_tier == 'source_finder' and removal_range == 'targeted':
             # assert that the source_finder is in the right dictionary format
@@ -276,7 +279,7 @@ class SAGEDData:
                                 remove_element_from_list(sa_dict['source_specification'],
                                                          sa_dict_to_remove['source_specification'])
                                 print(
-                                    f"Scrap area '{entity[sa_index_to_remove]['source_specification']}' removed from the data.")
+                                    f"Sources '{entity[sa_index_to_remove]['source_specification']}' removed from the data.")
                 else:
                     for sa_index, sa_dict in enumerate(item['category_shared_source']):
                         for sa_index_to_remove, sa_dict_to_remove in enumerate(entity):
@@ -285,13 +288,13 @@ class SAGEDData:
                                 remove_element_from_list(sa_dict['source_specification'],
                                                          sa_dict_to_remove['source_specification'])
                                 print(
-                                    f"Scrap area '{sa_dict_to_remove['source_specification']}' removed from the data.")
+                                    f"Sources '{sa_dict_to_remove['source_specification']}' removed from the data.")
 
-        if data_tier == 'scrapped_sentences':
+        if data_tier == 'scraped_sentences':
             for item in self.data:
                 for keyword, metadata in item['keywords'].items():
-                    metadata['scrapped_sentences'].remove(entity)
-                    print(f"Scrapped sentence '{entity}' removed from the data.")
+                    metadata['scraped_sentences'].remove(entity)
+                    print(f"scraped sentence '{entity}' removed from the data.")
         if data_tier == 'split_sentences':
             print("Cannot remove from split sentences data, it is a DataFrame.")
         if data_tier == 'questions':
@@ -375,7 +378,7 @@ class SAGEDData:
                     SAGEDData.check_format(source_finder_only=True)(self.data[index]['category_shared_source'])
 
                 elif source_finder_target == 'targeted':
-                    assert keyword is not None, "Keyword must be provided to add targeted scrap area."
+                    assert keyword is not None, "Keyword must be provided to add targeted source."
                     self.data[index]['keywords'][keyword]['targeted_source'].append(source_finder)
                     self.data[index]['keywords'][keyword]['targeted_source'] = \
                         merge_source_specifications(self.data[index]['keywords'][keyword]['targeted_source'])
@@ -384,10 +387,10 @@ class SAGEDData:
 
             return self
 
-        if data_tier == 'scrapped_sentences':
-            assert keyword is not None, "Keyword must be provided to add scrapped sentences."
+        if data_tier == 'scraped_sentences':
+            assert keyword is not None, "Keyword must be provided to add scraped sentences."
             for index, item in enumerate(self.data):
-                self.data[index]['keywords'][keyword]['scrapped_sentences'].append(source_finder)
+                self.data[index]['keywords'][keyword]['scraped_sentences'].append(source_finder)
                 return self
 
         if data_tier == 'split_sentences':

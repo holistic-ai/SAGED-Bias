@@ -49,6 +49,7 @@ class FeatureExtractor:
         self.benchmark = df.copy()
         return df
 
+    @ignore_future_warnings
     def sentiment_classification(self):
         df = self.benchmark
         print('Using default sentiment classifier: lxyuan/distilbert-base-multilingual-cased-sentiments-student')

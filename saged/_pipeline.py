@@ -56,7 +56,7 @@ class Pipeline:
                 'scrap_number': None,
                 'saving': None,
                 'saving_location': None,
-                'scrap_backlinks': None,
+                'scrape_backlinks': None,
             },
             'scraper': {
                 'require': None,
@@ -124,7 +124,7 @@ class Pipeline:
                 'scrap_number': 5,
                 'saving': True,
                 'saving_location': 'default',
-                'scrap_backlinks': 0,
+                'scrape_backlinks': 0,
             },
             'scraper': {
                 'require': True,
@@ -138,7 +138,7 @@ class Pipeline:
                 # prompt_maker_generation_function and prompt_maker_keyword_list are needed for questions
                 'generation_function': None,
                 # prompt_maker_keyword_list must contain at least one keyword. The first keyword must be the keyword
-                # of the original scrapped data.
+                # of the original scraped data.
                 'keyword_list': None,
                 # User will enter False if they don't want their questions answer checked.
                 'answer_check': False,
@@ -241,7 +241,7 @@ class Pipeline:
         source_finder_scrap_area_number, source_finder_scrap_backlinks = (
             source_finder_config[key] for key in [
             'require', 'reading_location', 'method', 'local_file', 'saving',
-            'saving_location', 'scrap_number', 'scrap_backlinks'
+            'saving_location', 'scrap_number', 'scrape_backlinks'
         ]
         )
 
@@ -308,31 +308,11 @@ class Pipeline:
                 kw = KeywordFinder(domain=domain, category=demographic_label).find_keywords_by_llm_inquiries(
                     **default_values).add(
                     keyword=demographic_label)
-            elif keyword_finder_method == 'hyperlinks_on_wiki':
-                # format='Paragraph', link=None, page_name=None, name_filter=False, col_info=None, depth=None, source_tag='default', max_keywords = None):
-                if ('link' in keyword_finder_hyperlinks_info and keyword_finder_hyperlinks_info['link'] != None) or (
-                        'page_name' in keyword_finder_hyperlinks_info and keyword_finder_hyperlinks_info[
-                    'page_name'] != None):
-                    default_values = {'format': 'Paragraph', 'link': None, 'page_name': None, 'name_filter': False,
-                                      'col_info': None, 'depth': None, 'source_tag': 'default', 'max_keywords': None}
-                else:
-                    raise AssertionError("For hyperlinks of wiki, must provide either the page name or link")
 
-                default_values = {'format': 'Paragraph', 'link': None, 'page_name': None, 'name_filter': False,
-                                  'col_info': None, 'depth': None, 'source_tag': 'default', 'max_keywords': None}
-
-                # Create a new dictionary with only non-default fields
-                for key in keyword_finder_hyperlinks_info:
-                    if key in default_values:
-                        default_values[key] = keyword_finder_hyperlinks_info[key]
-
-                kw = KeywordFinder(domain=domain, category=demographic_label).find_name_keywords_by_hyperlinks_on_wiki(
-                    **default_values).add(keyword=demographic_label)
-
-                # if manual keywords are provided, add them to the keyword finder
-                if isinstance(keyword_finder_manual_keywords, list):
-                    for keyword in keyword_finder_manual_keywords:
-                        kw = kw.add(keyword)
+            # if manual keywords are provided, add them to the keyword finder
+            if isinstance(keyword_finder_manual_keywords, list):
+                for keyword in keyword_finder_manual_keywords:
+                    kw = kw.add(keyword)
 
             if keyword_finder_saving:
                 if keyword_finder_saving_location == 'default':
@@ -364,21 +344,19 @@ class Pipeline:
 
         if source_finder_require:
             if source_finder_method == 'wiki':
-                sa = SourceFinder(kw, source_tag='wiki').find_scrap_urls_on_wiki(
-                    top_n=source_finder_scrap_area_number, scrap_backlinks=source_finder_scrap_backlinks)
+                sa = SourceFinder(kw, source_tag='wiki').find_scrape_urls_on_wiki(
+                    top_n=source_finder_scrap_area_number, scrape_backlinks=source_finder_scrap_backlinks)
             elif source_finder_method == 'local_files':
                 if source_finder_local_file == None:
                     raise ValueError(f"Unable to read keywords from {source_finder_local_file}. Can't scrap area.")
-                sa = SourceFinder(kw, source_tag='local').find_scrap_paths_local(source_finder_local_file)
-            print('Scrap areas located.')
+                sa = SourceFinder(kw, source_tag='local').find_scrape_paths_local(source_finder_local_file)
+            print('...Sources for Scraping located...')
 
             if source_finder_saving:
                 if source_finder_saving_location == 'default':
                     sa.save()
                 else:
                     sa.save(file_path=source_finder_saving_location)
-
-
         elif scraper_require:
             filePath = ""
             if source_finder_reading_location == 'default':
@@ -392,16 +370,16 @@ class Pipeline:
                                      file_path=source_finder_reading_location, data_tier='source_finder')
 
             if sa != None:
-                print(f'Scrap areas loaded from {filePath}')
+                print(f'...Source info loaded from {filePath}...')
             else:
-                raise ValueError(f"Unable to scrape from {filePath}. Can't use scraper.")
+                raise ValueError(f"Unable to load Source info from {filePath}. Can't use scraper.")
 
         if scraper_require:
             if scraper_method == 'wiki':
-                sc = Scraper(sa).scrap_in_page_for_wiki_with_buffer_files()
+                sc = Scraper(sa).scrape_in_page_for_wiki_with_buffer_files()
             elif scraper_method == 'local_files':
-                sc = Scraper(sa).scrap_local_with_buffer_files()
-            print('Scrapped sentences completed.')
+                sc = Scraper(sa).scrape_local_with_buffer_files()
+            print('Scraped sentences completed.')
 
             if scraper_saving:
                 if scraper_saving_location == 'default':
@@ -411,22 +389,22 @@ class Pipeline:
         elif prompt_maker_require:
             filePath = ""
             if scraper_reading_location == 'default':
-                filePath = f'data/customized/scrapped_sentences/{domain}_{demographic_label}_scrapped_sentences.json'
+                filePath = f'data/customized/scraped_sentences/{domain}_{demographic_label}_scraped_sentences.json'
                 sc = saged.load_file(domain=domain, category=demographic_label,
                                      file_path=filePath,
-                                     data_tier='scrapped_sentences')
+                                     data_tier='scraped_sentences')
                 print(
-                    f'Scrapped sentences loaded from data/customized/scrapped_sentences/{domain}_{demographic_label}_scrapped_sentences.json')
+                    f'Scraped sentences loaded from data/customized/scraped_sentences/{domain}_{demographic_label}_scraped_sentences.json')
             else:
                 filePath = scraper_reading_location
                 sc = saged.load_file(domain=domain, category=demographic_label, file_path=scraper_reading_location,
-                                     data_tier='scrapped_sentences')
-                print(f'Scrapped sentences loaded from {scraper_reading_location}')
+                                     data_tier='scraped_sentences')
+                print(f'Scraped sentences loaded from {scraper_reading_location}')
 
             if sc != None:
-                print(f'Scrapped loaded from {filePath}')
+                print(f'Scraped loaded from {filePath}')
             else:
-                raise ValueError(f"Unable to scrap from {filePath}. Can't make prompts.")
+                raise ValueError(f"Unable to load scraped sentences from {filePath}. Can't make prompts.")
 
         pm_result = None
         if prompt_maker_method == 'split_sentences' and prompt_maker_require:
@@ -439,7 +417,7 @@ class Pipeline:
                                           answer_check=prompt_maker_answer_check,
                                           max_questions=prompt_maker_max_sample_number)
         if pm_result is None:
-            raise ValueError(f"Unable to make prompts out of no scrapped sentences")
+            raise ValueError(f"Unable to make prompts out of no scraped sentences")
         pm_result = pm_result.sub_sample(prompt_maker_max_sample_number, floor=True,
                                          saged_format=True)  ### There is likely a bug
         if prompt_maker_saving_location == 'default':
@@ -518,7 +496,7 @@ class Pipeline:
                     domain_benchmark.save(file_path=configuration['saving_location'])
 
         if configuration['branching']:
-            empty_ss = saged.create_data(category='merged', domain=domain, data_tier='scrapped_sentences')
+            empty_ss = saged.create_data(category='merged', domain=domain, data_tier='scraped_sentences')
             pmr = PromptMaker(empty_ss)
             pmr.output_df = domain_benchmark.data
             domain_benchmark = pmr.branching(branching_config=configuration['branching_config'])

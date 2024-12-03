@@ -1,25 +1,23 @@
 import os
 
-import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 import glob
 
 import wikipediaapi
-from sentence_transformers import SentenceTransformer, util
 import numpy as np
 import warnings
 from ._saged_data import SAGEDData as saged_data
 
-import spacy
-from urllib.parse import urlparse, unquote
 from sentence_transformers import SentenceTransformer, util
 
 import re
 from tqdm import tqdm
 
 from ._utility import clean_list, construct_non_containing_set, check_generation_function
+from ._utility import ignore_future_warnings
 
+@ignore_future_warnings
 def find_similar_keywords(model_name, target_word, keywords_list, top_n=100):
     """
     Find the top N keywords most similar to the target word.
@@ -49,7 +47,8 @@ def find_similar_keywords(model_name, target_word, keywords_list, top_n=100):
 
     return top_keywords
 
-def search_wikipedia(topic, language='en', user_agent='Pipeline/1.0 (contact@holisticai.com)'):
+@ignore_future_warnings
+def search_wikipedia(topic, language='en', user_agent='SAGED-bias (contact@holisticai.com)'):
     """
     Search for a topic on Wikipedia and return the page object.
 
@@ -67,7 +66,7 @@ def search_wikipedia(topic, language='en', user_agent='Pipeline/1.0 (contact@hol
     if not page.exists():
         return f"No Wikipedia page found for {topic}"
 
-    return page
+    return page, wiki_wiki
 
 
 class KeywordFinder:
@@ -221,9 +220,7 @@ class KeywordFinder:
 
         self.keywords = list(construct_non_containing_set(list(final_set)))
         if show_progress:
-            print('final_set')
-            print(final_set)
-            print('summary')
+            print('final set of keywords:')
             print(self.keywords)
         if len(self.keywords) > n_keywords:
             if embedding_model:
@@ -234,10 +231,11 @@ class KeywordFinder:
         self.finder_mode = "llm"
         return self.keywords_to_saged_data()
 
+    @ignore_future_warnings
     def find_keywords_by_embedding_on_wiki(self, keyword=None,
                                            n_keywords=40, embedding_model='paraphrase-Mpnet-base-v2',
                                            language='en', max_adjustment = 150,
-                                           user_agent='AlignBiasCheck/1.0 (contact@holisticai.com)'):
+                                           user_agent='SAGED-bias (contact@holisticai.com)'):
         if not keyword:
             keyword = self.category
 
@@ -245,9 +243,9 @@ class KeywordFinder:
         print('Initiating the embedding model...')
         model = SentenceTransformer(embedding_model)
         try:
-            page_content = search_wikipedia(keyword, language, user_agent).text
+            page_content = search_wikipedia(keyword, language, user_agent)[0].text
         except AttributeError as e:
-            raise f"Page not Found: {e}"
+            raise AttributeError(f"Page not Found: {e}")
 
         if isinstance(page_content, str) and page_content.startswith("No Wikipedia page found"):
             return page_content
@@ -263,9 +261,6 @@ class KeywordFinder:
         token_embeddings = model.encode(unique_tokens, show_progress_bar=True)
         for token, embedding in zip(unique_tokens, token_embeddings):
             embeddings[token] = embedding
-        # # Find most similar words to the keyword
-        # if keyword not in embeddings:
-        #     raise AssertionError(f"Keyword '{keyword}' not found in the embeddings")
 
         keyword_embedding = model.encode([keyword.lower()], show_progress_bar=True)[0]
         similarities = {}
@@ -302,251 +297,6 @@ class KeywordFinder:
         self.finder_mode = "embedding"
         return self.keywords_to_saged_data()
 
-    def find_name_keywords_by_hyperlinks_on_wiki(self, format='Paragraph', link=None, page_name=None, name_filter=False,
-                                                 col_info=None, depth=None, source_tag='default', max_keywords=None):
-
-        def complete_link_page_name_pair(link, page_name, wiki_html):
-            def extract_title_from_url(url):
-                parsed_url = urlparse(url)
-                path = parsed_url.path
-                if path.startswith('/wiki/'):
-                    title = path[len('/wiki/'):]
-                    title = unquote(title.replace('_', ' '))
-                    return title
-                else:
-                    return None
-
-            if page_name == None:
-                page_name = extract_title_from_url(link)
-                return link, page_name
-            if link == None:
-                page = wiki_html.page(page_name)
-                if page.exists():
-                    return page.fullurl, page_name
-                else:
-                    raise AssertionError('Page link not found. Please provide a valid link or page name.')
-            if link == None and page_name == None:
-                raise AssertionError("You must enter either the page_name or the link")
-            return link, page_name
-
-        def bullet(page_name, wiki_html, max_keywords=None):
-
-            p_html = wiki_html.page(page_name)
-            # all_urls stores title as key and link as value
-            all_urls = {}
-
-            links = p_html.links
-
-            # keywords counter, if max_keywords is given, will only output the top max_keywords from the bullet list.
-            counter = 0
-            for key in tqdm(links.keys(), desc=f'Finding Keywords by Hyperlinks on Wiki Page {page_name}'):
-                k_entity = links[key]
-                if k_entity != None and k_entity.title != None and "Category" not in k_entity.title and "List" not in k_entity.title and "Template" not in k_entity.title and "Citation" not in k_entity.title and 'Portal' not in k_entity.title:
-                    try:
-                        all_urls[k_entity.title] = (k_entity.fullurl)
-                        counter += 1
-
-                        if max_keywords != None and counter >= max_keywords:
-                            break
-                    except KeyError:
-                        continue
-
-            return all_urls
-
-        def table(link, col_info, max_keywords=100):
-            matched_links = {}
-            try:
-                page = requests.get(link)
-                page.raise_for_status()  # Check for request errors
-
-                soup = BeautifulSoup(page.content, 'html.parser')
-                # Find the div with id="mw-content-text"
-                mw_content_text_div = soup.find('div', id='mw-content-text')
-
-                # If max_keywords is given, will print out keywords from current table until max_keywords is exceeded.
-                # Note: This method will finish keywords in the current table, meaning max_keywords may be exceeded.
-                counter = 0
-                if mw_content_text_div:
-                    # Find all <table> tags within mw-content-text div
-                    table_tags = mw_content_text_div.find_all('table')
-
-                    # keeps track of what table user requested for scraping
-                    table_num = 1
-                    for tab in table_tags:
-                        index = 0
-
-                        for each in tqdm(col_info, desc='checking through columns info'):
-                            if table_num in each.values():
-                                tr_tags = tab.find_all('tr')
-
-                                # Columns are the first row of columns in order to see which column needs scraping according to user's table_info
-                                first_row = tr_tags[0].find_all('th')
-
-                                for i in range(len(first_row)):
-
-                                    for col_name in each['column_name']:
-                                        if col_name in first_row[i]:
-                                            index = i
-
-                                    for tr in tr_tags:
-                                        # Find the <td> tag within each <tr> tag according to index
-                                        tds = tr.find_all('td')
-                                        if tds != None and len(tds) > 0:
-                                            term = tds[index + 1]
-                                            if term:
-                                                # Find the <a> tag within the first <td> tag
-                                                a_tag = term.find('a')
-                                                if a_tag:
-                                                    href_value = a_tag.get('href')
-                                                    # Check if href attribute starts with '/wiki/' and does not contain "Category"
-                                                    if href_value and href_value.startswith(
-                                                            '/wiki/') and "Category" not in href_value:
-                                                        matched_links[href_value[6:]] = (
-                                                                'https://en.wikipedia.org/' + href_value)
-                                                        counter += 1
-
-                        if max_keywords != None and counter >= max_keywords:
-                            break
-
-                        table_num += 1
-                else:
-                    print("Div with id='mw-content-text' not found.")
-            except requests.RequestException as e:
-                print(f"Request failed: {e}")
-            except Exception as e:
-                print(f"Failed to find keywords in the wiki page: {e}")
-
-            return matched_links
-
-        def nested(page_name, depth, wiki_html, max_keywords=None):
-
-            def default_depth(categorymembers, level=1):
-
-                max_depth = level
-                for c in categorymembers.values():
-                    if c.ns == wikipediaapi.Namespace.CATEGORY:
-                        current_depth = default_depth(c.categorymembers, level + 1)
-                        if current_depth > max_depth:
-                            max_depth = current_depth
-                return max_depth
-
-            def print_categorymembers(categorymembers, all_urls, max_level=1, level=0, max_keywords=None):
-                # Initialize a counter to track the number of links added
-                if 'count' not in print_categorymembers.__dict__:
-                    print_categorymembers.count = 0
-
-                # If max_keywords is specified and the count has reached this limit, return
-                if max_keywords is not None and print_categorymembers.count >= max_keywords:
-                    return
-
-                for c in categorymembers.values():
-                    if c is not None and c.title is not None and "Category" not in c.title and "List" not in c.title and "Template" not in c.title and "Citation" not in c.title and 'Portal' not in c.title:
-                        # Try-catch block to prevent KeyError in case fullurl is not present
-                        try:
-                            if max_keywords is not None and print_categorymembers.count >= max_keywords:
-                                return
-
-                            all_urls[c.title] = c.fullurl
-                            print_categorymembers.count += 1
-
-                        except KeyError:
-                            continue
-
-                    # As long as Category is still the name of the site and level is lower than max_level, recursively call the method again
-                    if c.ns == wikipediaapi.Namespace.CATEGORY and level < max_level:
-                        print_categorymembers(c.categorymembers, all_urls, max_level=max_level, level=level + 1,
-                                              max_keywords=max_keywords)
-
-            p_html = wiki_html.page(page_name)
-            all_urls = {}
-
-            if depth == None:
-                depth = default_depth(p_html.categorymembers)
-                print(f"Default depth is {depth}.")
-            # Calls recursive method to iterate through links according to depth
-            print_categorymembers(p_html.categorymembers, all_urls, depth, 0, max_keywords)
-
-            return all_urls
-
-        def named_entity_recognition(all_links, max_keywords=None):
-
-            # Uses spacy for named_entity recognition
-            nlp = spacy.load("en_core_web_sm")
-            pd.set_option("display.max_rows", 200)
-            new_links = {}
-
-            count = 0
-            for key, url in all_links.items():
-
-                if max_keywords != None and count >= max_keywords:
-                    break
-
-                doc = nlp(key)
-
-                # Goes through each entity in the key to search for PERSON label
-                for ent in doc.ents:
-                    if ent.label_ == "PERSON":
-                        new_links[key] = url
-                        count += 1
-                        break
-
-            return new_links
-
-        def turn_results_to_saged_data(results):
-            keywords_dictionary = {}
-            for keyword, link in results.items():
-                targeted_source_finder = {
-                    "source_tag": source_tag,
-                    "source_type": "wiki_urls",
-                    "source_specification": [link]
-                }
-                keywords_dictionary[keyword] = {
-                    "keyword_type": "name_entity",
-                    "keyword_provider": "wiki_hyperlinks",
-                    "scrap_mode": "in_page",
-                    "scrap_shared_area": "Yes",
-                    "targeted_source_finder": [targeted_source_finder]
-                }
-
-            keyword_entry = {
-                "category": self.category,
-                "domain": self.domain,
-                "keywords": keywords_dictionary
-            }
-
-            keywords_saged_data = saged_data.create_data(category=self.category, domain=self.domain, data_tier='keywords',
-                                                   data=[keyword_entry])
-
-            return keywords_saged_data
-
-        # Use wikipedia api for parsing through bulleted lists
-        wiki_html = wikipediaapi.Wikipedia(
-            user_agent="AlignmentBiasCheckingTools/1.0 (contact@holisticai.com)",
-            language='en',
-            extract_format=wikipediaapi.ExtractFormat.HTML
-        )
-
-        link, page_name = complete_link_page_name_pair(link, page_name, wiki_html)
-
-        result_map = {}
-        assert format in ['Paragraph', 'Bullet', 'Table',
-                          'Nested'], "Invalid format type. It must be either Paragraph, Bullet, Table, or Nested"
-        if format == 'Bullet' or format == 'Paragraph':
-            result_map = bullet(link, page_name, wiki_html, max_keywords)
-        elif format == 'Table':
-            if col_info == 'None':
-                print("Missing table information")
-                return
-            result_map = table(link, col_info, max_keywords)
-        elif format == 'Nested':
-            result_map = nested(link, page_name, depth, wiki_html, max_keywords)
-
-        # Checks to see if user wants NER. This will work for all formats however is most helpful for Paragraph
-        if name_filter:
-            result_map = named_entity_recognition(result_map, max_keywords)
-
-        return turn_results_to_saged_data(result_map)
-
 
 class SourceFinder:
     def __init__(self, keyword_saged_data, source_tag='default'):
@@ -576,98 +326,113 @@ class SourceFinder:
 
         return source_finder
 
-    def find_scrap_urls_on_wiki(self, top_n=5, bootstrap_url=None, language='en',
-                                user_agent='Pipeline/1.0 (contact@holisticai.com)', scrap_backlinks=0):
+    @ignore_future_warnings
+    def find_scrape_urls_on_wiki(self, top_n=5, bootstrap_url=None, language='en',
+                                 user_agent='SAGED-bias (contact@holisticai.com)', scrape_backlinks=0):
         """
         Main function to search Wikipedia for a topic and find related pages.
         """
 
-        def get_related_forelinks(topic, page, max_depth=1, current_depth=0, visited=None, top_n=50):
+        def get_related_forelinks(topic, page, wiki_wiki, max_depth=1, current_depth=0, visited=None, top_n=50):
             """
             Recursively get related pages up to a specified depth.
 
             Args:
             - topic (str): The main topic to start the search from.
             - page (Wikipedia page object): The Wikipedia page object of the main topic.
+            - wiki_wiki (Wikipedia): The Wikipedia API instance.
             - max_depth (int): Maximum depth to recurse.
             - current_depth (int): Current depth of the recursion.
             - visited (set): Set of visited pages to avoid loops.
+            - top_n (int): Number of top forelinks to retrieve based on relevance.
 
             Returns:
-            - list: A list of tuples containing the title and URL of related pages.
+            - list: A list of URLs of related forelinks.
             """
             links = page.links
             related_pages = []
 
             if visited is None:
                 visited = set()
-                # related_pages.extend([(page.title, page.fullurl)])
-                related_pages.extend([page.fullurl])
+                related_pages.append(page.fullurl)
 
             visited.add(page.title)
 
-            title_list = [title for title in links.items()]
+            title_list = list(links.keys())
             if len(title_list) > top_n:
                 title_list = find_similar_keywords('paraphrase-MiniLM-L6-v2', topic, title_list, top_n)
 
-            for link_page in tqdm(links.items()):
-                if link_page.title not in visited and link_page.title in title_list:
-                    try:
-                        related_pages.extend([link_page.fullurl])
-                    except Exception as e:
-                        print(f"Error: {e}")
-                if current_depth + 1 < max_depth:
-                    related_pages.extend(get_related_forelinks(topic, link_page, max_depth, current_depth + 1, visited))
+            for link_title in tqdm(title_list, desc=f"Depth {current_depth + 1}/{max_depth}"):
+                if link_title not in visited:
+                    # try:
+                    link_page = wiki_wiki.page(link_title)
+                    if link_page.exists():
+                        related_pages.append(link_page.fullurl)
+                        visited.add(link_title)
+                        if current_depth + 1 < max_depth:
+                            # Pass `top_n` down in the recursive call
+                            related_pages.extend(
+                                get_related_forelinks(topic, link_page, wiki_wiki, max_depth, current_depth + 1,
+                                                      visited,
+                                                      top_n))
+                    # except Exception as e:
+                    #     print(f"Error with page {link_title}: {e}")
 
             return related_pages
 
-        def get_related_backlinks(topic, page, max_depth=1, current_depth=0, visited=None, top_n=50):
+        def get_related_backlinks(topic, page, wiki_wiki, max_depth=1, current_depth=0, visited=None, top_n=50):
             """
             Recursively get related backlinks up to a specified depth.
 
             Args:
             - topic (str): The main topic to start the search from.
             - page (Wikipedia page object): The Wikipedia page object of the main topic.
+            - wiki_wiki (Wikipedia): The Wikipedia API instance.
             - max_depth (int): Maximum depth to recurse.
             - current_depth (int): Current depth of the recursion.
             - visited (set): Set of visited pages to avoid loops.
+            - top_n (int): Number of top backlinks to retrieve based on relevance.
 
             Returns:
-            - list: A list of tuples containing the title and URL of related backlinks.
+            - list: A list of URLs of related backlinks.
             """
-            links = page.backlinks
+            backlinks = page.backlinks
             related_pages = []
 
             if visited is None:
                 visited = set()
-                # related_pages.extend([(page.title, page.fullurl)])
-                related_pages.extend([page.fullurl])
+                related_pages.append(page.fullurl)
 
             visited.add(page.title)
 
-            title_list = [title for title, link_page in links.items()]
+            title_list = list(backlinks.keys())
             if len(title_list) > top_n:
                 title_list = find_similar_keywords('paraphrase-MiniLM-L6-v2', topic, title_list, top_n)
 
-            for link_page in tqdm(links.items()):
-                if link_page.title not in visited and link_page.title in title_list:
+            for link_title in tqdm(title_list, desc=f"Depth {current_depth + 1}/{max_depth}"):
+                if link_title not in visited:
                     try:
-                        related_pages.extend([link_page.fullurl])
+                        link_page = wiki_wiki.page(link_title)
+                        if link_page.exists():
+                            related_pages.append(link_page.fullurl)
+                            visited.add(link_title)
+                            if current_depth + 1 < max_depth:
+                                # Pass `top_n` down in the recursive call
+                                related_pages.extend(
+                                    get_related_backlinks(topic, link_page, wiki_wiki, max_depth, current_depth + 1,
+                                                          visited,
+                                                          top_n))
                     except Exception as e:
-                        print(f"Error: {e}")
-                if current_depth + 1 < max_depth:
-                    related_pages.extend(get_related_forelinks(topic, link_page, max_depth, current_depth + 1, visited))
+                        print(f"Error with page {link_title}: {e}")
 
             return related_pages
-
-
 
         topic = self.category
 
         print(f"Searching Wikipedia for topic: {topic}")
-        main_page = search_wikipedia(topic, language=language, user_agent=user_agent)
+        main_page, wiki_wiki = search_wikipedia(topic, language=language, user_agent=user_agent)
         if top_n == 0:
-            main_page_link = search_wikipedia(topic, language=language, user_agent=user_agent).fullurl
+            main_page_link = main_page.fullurl
             self.source_finder = [main_page_link]
             self.source_type = 'wiki_urls'
             return self.source_finder_to_saged_data()
@@ -677,16 +442,17 @@ class SourceFinder:
         else:
             print(f"Found Wikipedia page: {main_page.title}")
             print(f"Searching similar forelinks for {topic}")
-            related_pages = get_related_forelinks(topic, main_page, max_depth=1, top_n=top_n)
-            if scrap_backlinks > 0:
+            related_pages = get_related_forelinks(topic, main_page, wiki_wiki, max_depth=1, top_n=top_n)
+            if scrape_backlinks > 0:
                 print(f"Searching similar backlinks for {topic}")
-                related_backlinks = get_related_backlinks(topic, main_page, max_depth=1, top_n=scrap_backlinks)
+                related_backlinks = get_related_backlinks(topic, main_page, wiki_wiki, max_depth=1, top_n=scrape_backlinks)
                 related_pages.extend(related_backlinks)
             self.source_finder = list(set(related_pages))
             self.source_type = 'wiki_urls'
             return self.source_finder_to_saged_data()
 
-    def find_scrap_paths_local(self, directory_path):
+    @ignore_future_warnings
+    def find_scrape_paths_local(self, directory_path):
         # Use glob to find all text files in the directory and its subdirectories
         text_files = glob.glob(os.path.join(directory_path, '**/*.txt'), recursive=True)
         file_paths = [file_path.replace('\\', '/') for file_path in text_files]
@@ -710,13 +476,15 @@ class Scraper:
         self.extraction_expression = r'(?<=\.)\s+(?=[A-Z])|(?<=\?”)\s+|(?<=\.”)\s+'  # Regex pattern to split sentences
         self.source_tag = 'default'
 
-    def scrapped_sentence_to_saged_data(self):
-        scrapped_sentences = saged_data.create_data(category=self.category, domain=self.domain,
-                                                 data_tier='scrapped_sentences',
+    @ignore_future_warnings
+    def scraped_sentence_to_saged_data(self):
+        scraped_sentences = saged_data.create_data(category=self.category, domain=self.domain,
+                                                 data_tier='scraped_sentences',
                                                  data=self.data)
-        return scrapped_sentences
+        return scraped_sentences
 
-    def scrap_in_page_for_wiki_with_buffer_files(self):
+    @ignore_future_warnings
+    def scrape_in_page_for_wiki_with_buffer_files(self):
 
         url_links = []
         source_tags_list = []
@@ -788,14 +556,31 @@ class Scraper:
                     os.remove(temp_file_source_tag)
             aggregated_results_with_source_tag = list(zip(aggregated_results, aggregated_source_tags))
 
-            # Store aggregated results in the data structure
-            if "scrapped_sentences" in self.data[0]["keywords"][keyword].keys():
-                self.data[0]["keywords"][keyword]["scrapped_sentences"].extend(aggregated_results_with_source_tag)
-            else:
-                self.data[0]["keywords"][keyword]["scrapped_sentences"] = aggregated_results_with_source_tag
-        return self.scrapped_sentence_to_saged_data()
+            # # Store aggregated results in the data structure
+            # if "scraped_sentences" in self.data[0]["keywords"][keyword].keys():
+            #     self.data[0]["keywords"][keyword]["scraped_sentences"].extend(aggregated_results_with_source_tag)
+            # else:
+            #     self.data[0]["keywords"][keyword]["scraped_sentences"] = aggregated_results_with_source_tag
+            # Step 1: Create a temporary data structure for each keyword
+            temp_data = {kw: [] for kw in self.data[0]["keywords"].keys()}
 
-    def scrap_local_with_buffer_files(self):
+            # Step 2: Aggregate results into the temporary structure
+            for kw in temp_data.keys():
+                if kw == keyword:  # Process only the current keyword
+                    temp_data[kw].extend(aggregated_results_with_source_tag)
+
+            # Step 3: Update the main data structure with isolated results
+            for kw, results in temp_data.items():
+                if results:  # Update only if there are results to add
+                    if "scraped_sentences" in self.data[0]["keywords"][kw]:
+                        self.data[0]["keywords"][kw]["scraped_sentences"] = results
+                    else:
+                        self.data[0]["keywords"][kw]["scraped_sentences"] = results
+
+        return self.scraped_sentence_to_saged_data()
+
+    @ignore_future_warnings
+    def scrape_local_with_buffer_files(self):
 
         temp_dir = 'temp_results'
         os.makedirs(temp_dir, exist_ok=True)
@@ -866,12 +651,29 @@ class Scraper:
                     os.remove(temp_file_source_tag)
             aggregated_results_with_source_tag = list(zip(aggregated_results, aggregated_source_tags))
 
-            # Store aggregated results in the data structure
-            if "scrapped_sentences" in self.data[0]["keywords"][keyword].keys():
-                self.data[0]["keywords"][keyword]["scrapped_sentences"].extend(
-                    aggregated_results_with_source_tag)
-            else:
-                self.data[0]["keywords"][keyword]["scrapped_sentences"] = aggregated_results_with_source_tag
-        return self.scrapped_sentence_to_saged_data()
+            # # Store aggregated results in the data structure
+            # if "scraped_sentences" in self.data[0]["keywords"][keyword].keys():
+            #     self.data[0]["keywords"][keyword]["scraped_sentences"].extend(
+            #         aggregated_results_with_source_tag)
+            # else:
+            #     self.data[0]["keywords"][keyword]["scraped_sentences"] = aggregated_results_with_source_tag
+
+            # Step 1: Create a temporary data structure for each keyword
+            temp_data = {kw: [] for kw in self.data[0]["keywords"].keys()}
+
+            # Step 2: Aggregate results into the temporary structure
+            for kw in temp_data.keys():
+                if kw == keyword:  # Process only the current keyword
+                    temp_data[kw].extend(aggregated_results_with_source_tag)
+
+            # Step 3: Update the main data structure with isolated results
+            for kw, results in temp_data.items():
+                if results:  # Update only if there are results to add
+                    if "scraped_sentences" in self.data[0]["keywords"][kw]:
+                        self.data[0]["keywords"][kw]["scraped_sentences"] = results
+                    else:
+                        self.data[0]["keywords"][kw]["scraped_sentences"] = results
+
+        return self.scraped_sentence_to_saged_data()
 
 

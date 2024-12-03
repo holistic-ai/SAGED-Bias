@@ -10,27 +10,32 @@ from nltk import download
 import spacy
 from ._utility import clean_sentences_and_join as clean_sentences_and_join
 from ._utility import _update_configuration
+from ._utility import ignore_future_warnings
+
+download('punkt')
+download('stopwords')
 
 class PromptAssembler:
-    def __init__(self, scrapped_sentence_saged_data):
-        assert isinstance(scrapped_sentence_saged_data, _saged_data), "You need an saged of scrapped_sentences data_tier."
-        keyword_data_tier = scrapped_sentence_saged_data.data_tier
+    def __init__(self, scraped_sentence_saged_data):
+        assert isinstance(scraped_sentence_saged_data, _saged_data), "You need an saged of scraped_sentences data_tier."
+        keyword_data_tier = scraped_sentence_saged_data.data_tier
         assert _saged_data.tier_order[keyword_data_tier] == _saged_data.tier_order[
-            'scrapped_sentences'], "You need an saged_data of scrapped_sentences data_tier."
-        self.category = scrapped_sentence_saged_data.category
-        self.domain = scrapped_sentence_saged_data.domain
-        self.data = scrapped_sentence_saged_data.data
+            'scraped_sentences'], "You need an saged_data of scraped_sentences data_tier."
+        self.category = scraped_sentence_saged_data.category
+        self.domain = scraped_sentence_saged_data.domain
+        self.data = scraped_sentence_saged_data.data
         self.output_df = pd.DataFrame()
 
-        download('punkt')
-        download('stopwords')
+        # download('punkt')
+        # download('stopwords')
         # Load the English model for spaCy
         self.nlp = spacy.load("en_core_web_sm")
 
-    def scrapped_sentence_saged_data(self):
+    def scraped_sentence_saged_data(self):
         return _saged_data.create_data(category=self.category, domain=self.domain, data_tier='split_sentences',
                                    data=self.output_df)
 
+    @ignore_future_warnings
     def split_sentences(self, kw_check=False, keyword=None):
 
         def split_individual_sentence(sentence, kw_check=False, keyword=None):
@@ -87,9 +92,9 @@ class PromptAssembler:
             # Convert doc to list of tokens
             tokens = [token.text for token in doc]
 
-            # Split the sentence
-            part1 = " ".join(tokens[:split_index])
-            part2 = " ".join(tokens[split_index:])
+            # Split the sentence using the original spaCy span
+            part1 = doc[:split_index].text
+            part2 = doc[split_index:].text
             success = True
 
             if kw_check and keyword:
@@ -104,7 +109,7 @@ class PromptAssembler:
             category = category_item.get("category")
             domain = category_item.get("domain")
             for keyword, keyword_data in tqdm(category_item['keywords'].items()):
-                for sentence_with_tag in tqdm(keyword_data['scrapped_sentences']):
+                for sentence_with_tag in tqdm(keyword_data['scraped_sentences']):
                     part1, part2, success = split_individual_sentence(sentence_with_tag[0], True, keyword=keyword)
 
                     if part2:
@@ -122,8 +127,9 @@ class PromptAssembler:
                 # Create a DataFrame
                 self.output_df = pd.DataFrame(results)
 
-        return self.scrapped_sentence_saged_data()
+        return self.scraped_sentence_saged_data()
 
+    @ignore_future_warnings
     def make_questions(self, generation_function, keyword_reference=None, answer_check=True, max_questions=None):
 
         def get_question(sentence, generation_function, keyword, keyword_list=None, bad_questions=None, Example=True):
@@ -204,8 +210,8 @@ class PromptAssembler:
 
 
             for keyword_data in tqdm(category_item['keywords'].items(), desc="Going through keywords"):
-                for sentence_with_tag in tqdm(keyword_data[1]['scrapped_sentences'],
-                                              desc="Going through scrapped sentences"):
+                for sentence_with_tag in tqdm(keyword_data[1]['scraped_sentences'],
+                                              desc="Going through scraped sentences"):
                     if max_questions != None and len(results) >= max_questions:
                         break
                     question = get_question(sentence=sentence_with_tag[0], generation_function=generation_function,
@@ -222,7 +228,7 @@ class PromptAssembler:
                         # otherwise, if only one keyword then no need to check question.
                         check = True
 
-                    # Tries two more times to see if valid question can be made from scrapped sentence.
+                    # Tries two more times to see if valid question can be made from scraped sentence.
                     bad_count = 0
                     while check == False and bad_count < 2:
                         print("Trying question generation again")
@@ -247,12 +253,14 @@ class PromptAssembler:
 
                 self.output_df = pd.DataFrame(results)
 
-            return self.scrapped_sentence_saged_data()
+            return self.scraped_sentence_saged_data()
 
+    @ignore_future_warnings
     def merge(self, prompt_df):
         self.output_df = pd.concat([self.output_df, prompt_df])
-        return self.scrapped_sentence_saged_data()
+        return self.scraped_sentence_saged_data()
 
+    @ignore_future_warnings
     def branching(self, branching_config = None):
 
         df = self.output_df
@@ -503,7 +511,6 @@ class PromptAssembler:
                 replacement_description = add_and_clean_replacement_pairs(replacement_description)
 
             rd = replacement_description[category_pair[0]][category_pair[1]]
-            # print(rd)
             df_new = df[df['category'] == category_pair[0]].copy()
             df_new['prompts'] = df_new['prompts'].apply(lambda x: replace_terms(x, rd).capitalize())
             if branching_config['counterfactual_baseline']:
@@ -515,6 +522,6 @@ class PromptAssembler:
 
             self.output_df = df_result
 
-        return self.scrapped_sentence_saged_data()
+        return self.scraped_sentence_saged_data()
 
 
