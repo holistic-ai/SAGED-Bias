@@ -5,3 +5,28 @@ __pycache__/
 .coverage
 coverage.xml
 htmlcov/
+
+# Environment files
+.venv/
+*.env
+
+# Python compiled files
+*.py[cod]
+
+# Test coverage reports
+.coverage*
+
+# Distribution and build files
+dist/
+build/
+*.egg-info/
+
+# Dependency files
+external_dependency/*.whl
+
+# IDE settings
+.vscode/
+.idea/
+
+# Log files
+*.log
