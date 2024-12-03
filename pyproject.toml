@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "SAGEDbias"
-version = "0.1.0"
+version = "0.0.13"
 description = "LLM bias package with customizable benchmark building and analytical tools"
 authors = ["HolisticAI"]
 readme = "README.md"
@@ -8,20 +8,19 @@ packages = [{include = "saged"}]
 include = ["external_dependency/*.whl"]
 
 [tool.poetry.dependencies]
-python = "^3.11"
-pandas = "^1.5.3"
-numpy = "^1.24.3"
+python = "^3.10"
+pandas = "^2.0.0"
+numpy = "^1.22.0"
 tqdm = "^4.66.4"
 requests = "^2.32.3"
 bs4 = "^0.0.2"
-wikipedia-api = "^0.6.0"
+wikipedia-api = "^0.7.0"
 nltk = "^3.8.1"
-plotly = "^5.23.0"
 scipy = "^1.7.3"
-scikit-learn = "^1.0"
+scikit-learn = "^1.4.0"
 spacy = "^3.2.1"
 transformers = "^4.11.3"
-sentence-transformers = "^2.1.0"
+sentence-transformers = "^3.0.0"
 
 [build-system]
 requires = ["poetry-core"]

@@ -1,0 +1,28 @@
+Metadata-Version: 2.1
+Name: SAGEDbias
+Version: 0.0.13
+Summary: LLM bias package with customizable benchmark building and analytical tools
+Author: HolisticAI
+Requires-Python: >=3.10,<4.0
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Requires-Dist: bs4 (>=0.0.2,<0.0.3)
+Requires-Dist: nltk (>=3.8.1,<4.0.0)
+Requires-Dist: numpy (>=1.22.0,<2.0.0)
+Requires-Dist: pandas (>=2.0.0,<3.0.0)
+Requires-Dist: requests (>=2.32.3,<3.0.0)
+Requires-Dist: scikit-learn (>=1.4.0,<2.0.0)
+Requires-Dist: scipy (>=1.7.3,<2.0.0)
+Requires-Dist: sentence-transformers (>=3.0.0,<4.0.0)
+Requires-Dist: spacy (>=3.2.1,<4.0.0)
+Requires-Dist: tqdm (>=4.66.4,<5.0.0)
+Requires-Dist: transformers (>=4.11.3,<5.0.0)
+Requires-Dist: wikipedia-api (>=0.7.0,<0.8.0)
+Description-Content-Type: text/markdown
+
+See https://arxiv.org/abs/2409.11149
+SAGED: A Holistic Bias-Benchmarking Pipeline for Language Models with Customisable Fairness Calibration
+![image](https://github.com/user-attachments/assets/76fdb7fa-a4e7-4b1b-bd4d-0f47743fde5d)
+
