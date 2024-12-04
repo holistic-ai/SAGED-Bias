@@ -30,13 +30,16 @@ SAGED evaluates max disparity (e.g., impact ratio) and bias concentration (e.g.,
 
 ## Installation
 
-### Install the latest version of SAGED-bias from PyPi using pip:
+[//]: # (### Install the latest version of SAGED-bias from PyPi using pip:)
 
-```bash
-pip install sagedbias
-```
+[//]: # ()
+[//]: # (```bash)
 
-### Or install the development version from GitHub:
+[//]: # (pip install sagedbias)
+
+[//]: # (```)
+
+### Install the development version from GitHub:
 
 ```bash
 # Clone the repository
