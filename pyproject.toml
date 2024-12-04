@@ -90,7 +90,7 @@ dependencies = [
 env-vars = { PYTHONPATH = "." }
 
 [tool.hatch.envs.testing.scripts]
-test = ["pytest tests --cache-clear --cov=saged --cov-report=xml"]
+test = ["pytest -m tests --cache-clear --cov=saged --cov-report=xml"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["saged"]
