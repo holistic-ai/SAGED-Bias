@@ -30,13 +30,36 @@ SAGED evaluates max disparity (e.g., impact ratio) and bias concentration (e.g.,
 
 ## Installation
 
-Install the latest version of SAGED-bias from PyPi using pip:
+### Install the latest version of SAGED-bias from PyPi using pip:
 
 ```bash
 pip install sagedbias
 ```
 
-We officially support Python 3.10 and 3.11.
+### Or install the development version from GitHub:
+
+```bash
+# Clone the repository
+git clone https://github.com/holistic-ai/SAGED-Bias.git
+cd SAGED-Bias
+
+# Install Hatch (if not already installed)
+pip install hatch
+
+# Create and activate a virtual environment
+hatch env create
+hatch shell
+```
+ 
+### Install the dependencies
+```bash
+hatch run install
+```
+
+### Running Tests
+```bash
+hatch run pytest tests --cache-clear --cov=saged --cov-report=term
+```
 
 ## Key Features
 
