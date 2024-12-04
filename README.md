@@ -49,9 +49,8 @@ cd SAGED-Bias
 # Install Hatch (if not already installed)
 pip install hatch
 
-# Create and activate a virtual environment
+# Create a virtual environment
 hatch env create
-hatch shell
 ```
  
 ### Install the dependencies
