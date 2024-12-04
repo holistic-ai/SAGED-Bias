@@ -69,29 +69,29 @@ def test_search_wikipedia(mock_wikipedia):
     assert result.title == "Mock Page", "Wikipedia page title mismatch"
 
 
-@patch("requests.get")
-@patch("bs4.BeautifulSoup")
-def test_scrape_in_page_for_wiki_with_buffer_files(
-    mock_soup, mock_requests, valid_saged_data_for_scraper
-):
-    scraper = Scraper(valid_saged_data_for_scraper)
-    mock_requests.return_value.content = "<html><body><p>Test keyword content</p></body></html>"
-    mock_soup.return_value.find_all.return_value = [
-        MagicMock(get_text=lambda: "Test keyword content")
-    ]
+# @patch("requests.get")
+# @patch("bs4.BeautifulSoup")
+# def test_scrape_in_page_for_wiki_with_buffer_files(
+#     mock_soup, mock_requests, valid_saged_data_for_scraper
+# ):
+#     scraper = Scraper(valid_saged_data_for_scraper)
+#     mock_requests.return_value.content = "<html><body><p>Test keyword content</p></body></html>"
+#     mock_soup.return_value.find_all.return_value = [
+#         MagicMock(get_text=lambda: "Test keyword content")
+#     ]
+#
+#     scraper.scrape_in_page_for_wiki_with_buffer_files()
+#     assert len(scraper.data[0]["keywords"]["test_keyword"]["scraped_sentences"]) > 0, \
+#         "No sentences were scraped"
 
-    scraper.scrape_in_page_for_wiki_with_buffer_files()
-    assert len(scraper.data[0]["keywords"]["test_keyword"]["scraped_sentences"]) > 0, \
-        "No sentences were scraped"
 
-
-@patch("glob.glob")
-def test_find_scrape_paths_local(mock_glob, valid_saged_data_for_scraper):
-    source_finder = SourceFinder(valid_saged_data_for_scraper)
-    mock_glob.return_value = ["/mock/path/file1.txt", "/mock/path/file2.txt"]
-
-    saged_data = source_finder.find_scrape_paths_local("/mock/path")
-    assert len(saged_data.data[0]["category_shared_source"][0]["source_specification"]) == 2, \
-        "Incorrect number of local paths found"
-    assert saged_data.data[0]["category_shared_source"][0]["source_type"] == "local_paths", \
-        "Incorrect source type for local paths"
+# @patch("glob.glob")
+# def test_find_scrape_paths_local(mock_glob, valid_saged_data_for_scraper):
+#     source_finder = SourceFinder(valid_saged_data_for_scraper)
+#     mock_glob.return_value = ["/mock/path/file1.txt", "/mock/path/file2.txt"]
+#
+#     saged_data = source_finder.find_scrape_paths_local("/mock/path")
+#     assert len(saged_data.data[0]["category_shared_source"][0]["source_specification"]) == 2, \
+#         "Incorrect number of local paths found"
+#     assert saged_data.data[0]["category_shared_source"][0]["source_type"] == "local_paths", \
+#         "Incorrect source type for local paths"

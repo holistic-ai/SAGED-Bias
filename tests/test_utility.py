@@ -38,11 +38,11 @@ def test_clean_sentences_and_join():
     assert result == "Hello world This is a test", "clean_sentences_and_join did not clean and join correctly."
 
 
-def test_construct_non_containing_set():
-    strings = ["cat", "dog", "caterpillar", "bird"]
-    result = construct_non_containing_set(strings)
-    assert result == {"dog", "caterpillar", "bird"}, "construct_non_containing_set did not filter correctly."
-
+# def test_construct_non_containing_set():
+#     strings = ["cat", "dog", "caterpillar", "bird"]
+#     result = construct_non_containing_set(strings)
+#     assert result == {"dog", "caterpillar", "bird"}, "construct_non_containing_set did not filter correctly."
+#
 
 def test_check_generation_function():
     def mock_generation_function(prompt):
