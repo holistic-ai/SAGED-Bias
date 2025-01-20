@@ -43,7 +43,7 @@ This diagram illustrates the core stages of the SAGED pipeline:
 pip install sagedbias
 ```
  
-### import the library 
+### Import the library 
 ```python
 from saged import Pipeline
 from saged import Scraper, KeywordFinder, SourceFinder
