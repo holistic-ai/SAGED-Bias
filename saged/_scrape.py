@@ -70,15 +70,15 @@ def search_wikipedia(topic, language='en', user_agent='SAGED-bias (contact@holis
 
 
 class KeywordFinder:
-    def __init__(self, category, domain):
-        self.category = category
+    def __init__(self, concept, domain):
+        self.concept = concept
         self.domain = domain
         self.model = ''
         self.keywords = []
         self.finder_mode = None
         self.kw_targeted_source_finder_dict = None
 
-    def keywords_to_saged_data(self):
+    def to_saged_data(self):
         keywords = self.keywords
 
         if self.finder_mode == "llm" or self.finder_mode == "embedding":
@@ -102,62 +102,62 @@ class KeywordFinder:
                     keywords_dictionary[keyword]["targeted_source_finder"] = targeted_source_finder
 
             keyword_entry = {
-                "category": self.category,
+                "concept": self.concept,
                 "domain": self.domain,
                 "keywords": keywords_dictionary
             }
 
-            keywords_saged_data = saged_data.create_data(category=self.category, domain=self.domain, data_tier='keywords',
+            keywords_saged_data = saged_data.create_data(concept=self.concept, domain=self.domain, data_tier='keywords',
                                                    data=[keyword_entry])
 
             return keywords_saged_data
 
-    def find_keywords_by_llm_inquiries(self, n_run=20,
-                                       n_keywords=20,
-                                       generation_function=None,
-                                       model_name=None,
-                                       embedding_model=None,
-                                       show_progress=True):
+    def lm_inquiries(self, n_run=20,
+                     n_keywords=20,
+                     generation_function=None,
+                     model_name=None,
+                     embedding_model=None,
+                     show_progress=True):
 
         def get_llm_template(template_type, **kwargs):
-            category = kwargs.get('category')
+            concept = kwargs.get('concept')
             domain = kwargs.get('domain')
 
-            if category and domain:
+            if concept and domain:
                 template_people = f"""
-                Given {category} under the topic {domain}, \
-                provide a list of famous names that are representative to the {category}.
+                Given {concept} under the topic {domain}, \
+                provide a list of famous names that are representative to the {concept}.
                 Output your answer in a python list format only and nothing else.
                 """
 
                 template_people_short = f"""
-                Given {category} under the topic {domain}, \
-                provide a list of famous names that are representative to {category}.
+                Given {concept} under the topic {domain}, \
+                provide a list of famous names that are representative to {concept}.
                 These names can be short family names for which they are identified within the context.
                 Output your answer in a python list format only and nothing else.
                 """
 
                 template_characteristics = f"""
-                Given the {category} under the topic {domain}, \
-                provide a list of characteristics that are necessary (!!!) to {category}.
+                Given the {concept} under the topic {domain}, \
+                provide a list of characteristics that are necessary (!!!) to {concept}.
                 Output your answer in a python list format only and nothing else.
                 """
 
                 template_subcategories = f"""
-                Given the {category} under the topic {domain}, \
-                provide a list of sub-categories of {category}.
+                Given the {concept} under the topic {domain}, \
+                provide a list of sub-categories of {concept}.
                 Output your answer in a python list format only and nothing else.
                 """
 
                 template_syn = f"""
-                Given the {category} under the topic {domain}, \
-                provide a list of synonyms of {category}.
+                Given the {concept} under the topic {domain}, \
+                provide a list of synonyms of {concept}.
                 Output your answer in a python list format only and nothing else.
                 """
 
                 template_root = f"""
-                Given the {category} under the topic {domain}, \
-                provide a list of words that share the same grammatical roots with {category}.
+                Given the {concept} under the topic {domain}, \
+                provide a list of words that share the same grammatical roots with {concept}.
                 Output your answer in a python list format only and nothing else.
                 """
 
@@ -177,39 +177,39 @@ class KeywordFinder:
             print('Template type not found')
             return None
 
-        category = self.category
+        concept = self.concept
         domain = self.domain
         if model_name:
             self.model = model_name
         else:
             warnings.warn("Model name not provided. Using the default model name 'user_LLM'")
             self.model = 'user_LLM'
-        final_set = {category}
+        final_set = {concept}
         check_generation_function(generation_function, test_mode='list')
 
         for _ in tqdm(range(n_run), desc='finding keywords by LLM', unit='run'):
             try:
                 if _ == 0 or _ == 1:
                     response = clean_list(
-                        generation_function(get_llm_template('root', category=category, domain=domain)))
+                        generation_function(get_llm_template('root', concept=concept, domain=domain)))
                     final_set.update(response)
                 if _ % 5 == 0:
-                    # response = clean_list(agent.invoke(get_template('people_short', category=category, domain=domain)))
+                    # response = clean_list(agent.invoke(get_template('people_short', concept=concept, domain=domain)))
                     response = clean_list(
-                        generation_function(get_llm_template('subcategories', category=category, domain=domain)))
+                        generation_function(get_llm_template('subcategories', concept=concept, domain=domain)))
                 elif _ % 5 == 1:
-                    # response = clean_list(agent.invoke(get_template('people', category=category, domain=domain)))
+                    # response = clean_list(agent.invoke(get_template('people', concept=concept, domain=domain)))
                     response = clean_list(
-                        generation_function(get_llm_template('characteristics', category=category, domain=domain)))
+                        generation_function(get_llm_template('characteristics', concept=concept, domain=domain)))
                 elif _ % 5 == 2:
                     response = clean_list(
-                        generation_function(get_llm_template('synonym', category=category, domain=domain)))
+                        generation_function(get_llm_template('synonym', concept=concept, domain=domain)))
                 elif _ % 5 == 3:
                     response = clean_list(
-                        generation_function(get_llm_template('people', category=category, domain=domain)))
+                        generation_function(get_llm_template('people', concept=concept, domain=domain)))
                 elif _ % 5 == 4:
                     response = clean_list(
-                        generation_function(get_llm_template('people_short', category=category, domain=domain)))
+                        generation_function(get_llm_template('people_short', concept=concept, domain=domain)))
                 if show_progress:
                     print(f"Response: {response}")
                 # Extend the final_set with the response_list
@@ -224,20 +224,20 @@ class KeywordFinder:
             print(self.keywords)
         if len(self.keywords) > n_keywords:
             if embedding_model:
-                self.keywords = find_similar_keywords(embedding_model, category, self.keywords, top_n=n_keywords)
+                self.keywords = find_similar_keywords(embedding_model, concept, self.keywords, top_n=n_keywords)
             else:
-                self.keywords = find_similar_keywords('paraphrase-MiniLM-L6-v2', self.category, self.keywords,
+                self.keywords = find_similar_keywords('paraphrase-MiniLM-L6-v2', self.concept, self.keywords,
                                                       top_n=n_keywords)
         self.finder_mode = "llm"
-        return self.keywords_to_saged_data()
+        return self.to_saged_data()
 
     @ignore_future_warnings
-    def find_keywords_by_embedding_on_wiki(self, keyword=None,
-                                           n_keywords=40, embedding_model='paraphrase-Mpnet-base-v2',
-                                           language='en', max_adjustment = 150,
-                                           user_agent='SAGED-bias (contact@holisticai.com)'):
+    def wiki_embeddings(self, keyword=None,
+                        n_keywords=40, embedding_model='paraphrase-Mpnet-base-v2',
+                        language='en', max_adjustment = 150,
+                        user_agent='SAGED-bias (contact@holisticai.com)'):
         if not keyword:
-            keyword = self.category
+            keyword = self.concept
 
         # Search Wikipedia for the keyword
         print('Initiating the embedding model...')
@@ -295,7 +295,7 @@ class KeywordFinder:
 
         # Set mode and return processed data
         self.finder_mode = "embedding"
-        return self.keywords_to_saged_data()
+        return self.to_saged_data()
 
 
 class SourceFinder:
@@ -305,14 +305,14 @@ class SourceFinder:
         assert saged_data.tier_order[keyword_data_tier] >= saged_data.tier_order['keywords'], "You need an ata with " \
                                                                                         "data_tier higher than " \
                                                                                         "keywords. "
-        self.category = keyword_saged_data.category
+        self.concept = keyword_saged_data.concept
         self.domain = keyword_saged_data.domain
         self.data = keyword_saged_data.data
         self.source_finder = []
         self.source_tage = source_tag
         self.source_type = 'unknown'
 
-    def source_finder_to_saged_data(self):
+    def to_saged_data(self):
 
         formatted_source_finder = [{
             "source_tag": self.source_tage,
@@ -320,15 +320,15 @@ class SourceFinder:
             "source_specification": self.source_finder
         }]
 
-        self.data[0]["category_shared_source"] = formatted_source_finder
-        source_finder = saged_data.create_data(category=self.category, domain=self.domain, data_tier='source_finder',
+        self.data[0]["concept_shared_source"] = formatted_source_finder
+        source_finder = saged_data.create_data(concept=self.concept, domain=self.domain, data_tier='source_finder',
                                          data=self.data)
 
         return source_finder
 
     @ignore_future_warnings
-    def find_scrape_urls_on_wiki(self, top_n=5, bootstrap_url=None, language='en',
-                                 user_agent='SAGED-bias (contact@holisticai.com)', scrape_backlinks=0):
+    def wiki(self, top_n=5, bootstrap_url=None, language='en',
+             user_agent='SAGED-bias (contact@holisticai.com)', scrape_backlinks=0):
         """
         Main function to search Wikipedia for a topic and find related pages.
         """
@@ -427,7 +427,7 @@ class SourceFinder:
 
             return related_pages
 
-        topic = self.category
+        topic = self.concept
 
         print(f"Searching Wikipedia for topic: {topic}")
         main_page, wiki_wiki = search_wikipedia(topic, language=language, user_agent=user_agent)
@@ -435,10 +435,10 @@ class SourceFinder:
             main_page_link = main_page.fullurl
             self.source_finder = [main_page_link]
             self.source_type = 'wiki_urls'
-            return self.source_finder_to_saged_data()
+            return self.to_saged_data()
 
         if isinstance(main_page, str):
-            return self.source_finder_to_saged_data()
+            return self.to_saged_data()
         else:
             print(f"Found Wikipedia page: {main_page.title}")
             print(f"Searching similar forelinks for {topic}")
@@ -449,16 +449,16 @@ class SourceFinder:
                 related_pages.extend(related_backlinks)
             self.source_finder = list(set(related_pages))
             self.source_type = 'wiki_urls'
-            return self.source_finder_to_saged_data()
+            return self.to_saged_data()
 
     @ignore_future_warnings
-    def find_scrape_paths_local(self, directory_path):
+    def local(self, directory_path):
         # Use glob to find all text files in the directory and its subdirectories
         text_files = glob.glob(os.path.join(directory_path, '**/*.txt'), recursive=True)
         file_paths = [file_path.replace('\\', '/') for file_path in text_files]
         self.source_finder= file_paths
         self.source_type = 'local_paths'
-        return self.source_finder_to_saged_data()
+        return self.to_saged_data()
 
 
 class Scraper:
@@ -468,17 +468,17 @@ class Scraper:
         assert saged_data.tier_order[keyword_data_tier] >= saged_data.tier_order['source_finder'], "You need an saged_data with " \
                                                                                           "data_tier higher than " \
                                                                                           "scrap_area. "
-        self.category = source_finder_saged_data.category
+        self.concept = source_finder_saged_data.concept
         self.domain = source_finder_saged_data.domain
         self.data = source_finder_saged_data.data
-        self.source_finder = source_finder_saged_data.data[0]["category_shared_source"]
+        self.source_finder = source_finder_saged_data.data[0]["concept_shared_source"]
         self.keywords = self.data[0]["keywords"].keys()
         self.extraction_expression = r'(?<=\.)\s+(?=[A-Z])|(?<=\?”)\s+|(?<=\.”)\s+'  # Regex pattern to split sentences
         self.source_tag = 'default'
 
     @ignore_future_warnings
-    def scraped_sentence_to_saged_data(self):
-        scraped_sentences = saged_data.create_data(category=self.category, domain=self.domain,
+    def to_saged_data(self):
+        scraped_sentences = saged_data.create_data(concept=self.concept, domain=self.domain,
                                                  data_tier='scraped_sentences',
                                                  data=self.data)
         return scraped_sentences
@@ -577,7 +577,7 @@ class Scraper:
                     else:
                         self.data[0]["keywords"][kw]["scraped_sentences"] = results
 
-        return self.scraped_sentence_to_saged_data()
+        return self.to_saged_data()
 
     @ignore_future_warnings
     def scrape_local_with_buffer_files(self):
@@ -674,6 +674,6 @@ class Scraper:
                     else:
                         self.data[0]["keywords"][kw]["scraped_sentences"] = results
 
-        return self.scraped_sentence_to_saged_data()
+        return self.to_saged_data()
 
 

@@ -14,17 +14,15 @@
 
 SAGED(-Bias) is the first comprehensive benchmarking pipeline designed to detect and mitigate bias in large language models. It addresses limitations in existing benchmarks such as narrow scope, contamination, and lack of fairness calibration. The SAGED pipeline includes the following five core stages:
 
-![System Diagram](system_diagram.png)
+![System Diagram](diagrams/pipeline.png)
 
 This diagram illustrates the core stages of the SAGED pipeline:
 
 1. **Scraping Materials**: Collects and processes benchmark data from various sources.
-2. **Assembling Benchmarks**: Creates structured benchmarks with contextual and demographic considerations.
+2. **Assembling Benchmarks**: Creates structured benchmarks with contextual and comparison considerations.
 3. **Generating Responses**: Produces language model outputs for evaluation.
-4. **Extracting Features**: Extracts numerical and textual features for analysis.
-5. **Diagnosing Bias**: Applies advanced disparity metrics and fairness calibration techniques.
-
-SAGED evaluates max disparity (e.g., impact ratio) and bias concentration (e.g., Max Z-scores) while mitigating assessment tool bias and contextual bias through counterfactual branching and baseline calibration.
+4. **Extracting Features**: Extracts numerical and textual features from responses for analysis.
+5. **Diagnosing Bias**: Applies various disparity metrics with baseline comparions.
 
 ---
 
@@ -39,66 +37,20 @@ SAGED evaluates max disparity (e.g., impact ratio) and bias concentration (e.g.,
 
 [//]: # (```)
 
-### Install the development version from GitHub:
+### Install the library from PyPI:
 
 ```bash
-# Clone the repository
-git clone https://github.com/holistic-ai/SAGED-Bias.git
-cd SAGED-Bias
-
-# Install Hatch (if not already installed)
-pip install hatch
-
-# Create a virtual environment
-hatch env create
+pip install sagedbias
 ```
  
-### Install the dependencies
-```bash
-hatch run install
+### import the library 
+```python
+from saged import Pipeline
+from saged import Scraper, KeywordFinder, SourceFinder
+from saged import PromptAssembler
+from saged import FeatureExtractor
+from saged import DisparityDiagnoser
 ```
-
-### Running Tests
-```bash
-hatch run pytest tests --cache-clear --cov=saged --cov-report=term
-```
-
-## Key Features
-
-### 1. Customize Bias-Benchmarking Prompts and Metrics
-SAGED allows users to define custom prompts and tailor bias-benchmarking metrics, making it adaptable to different contexts and evaluation requirements.
-
-### 2. Benchmark Building: Scrape and Assemble
-- **Scraping (`_scrape.py`)**: Collect data using tools like Wikipedia API, BeautifulSoup, and custom scraping methods.
-- **Assembling (`_assembler.py`)**: Combine scraped data into structured benchmarks with configurable branching logic.
-
-### 3. Benchmark Running: Generate and Extract
-- **Generate (`_generator.py`)**: Use pre-defined templates to generate responses from language models.
-- **Extract (`_extractor.py`)**: Extract key features such as sentiment, toxicity, and stereotypes using advanced classifiers and embeddings.
-
-### 4. Diagnosis: Group, Summarize, and Compare
-- **Diagnose (`_diagnoser.py`)**: Apply advanced statistical techniques to detect disparities and summarize results.
-- **Metrics**: Includes Max Disparity, Z-scores, precision, and correlation metrics.
-
-### 5. Pipeline - Build and Run Benchmark
-- **Pipeline (`_pipeline.py`)**: Automate the entire benchmarking process by integrating scraping, assembling, generation, feature extraction, and diagnosis.
-
-## Usage Guide
-
-### Building a Benchmark
-- **Scraping Materials**: Use the `KeywordFinder`, `SourceFinder`, or `Scraper` classes from `_scrape.py` to collect benchmark data.
-- **Assembling Prompts**: Use the `PromptAssembler` class in `_assembler.py` to split sentences and create custom prompts.
-
-### Running the Benchmark
-- **Generate Responses**: Use the `ResponseGenerator` class in `_generator.py` to generate outputs from language models.
-- **Extract Features**: Apply the `FeatureExtractor` class in `_extractor.py` for sentiment, toxicity, and stereotype analysis.
-
-### Diagnosing Bias
-- **Group and Analyze**: Use the `DisparityDiagnoser` class in `_diagnoser.py` to calculate group statistics and compare disparities.
-- **Visualization**: Leverage Plotly integration for interactive visualizations.
-
-### End-to-End Pipeline
-- The `Pipeline` class in `_pipeline.py` integrates all stages into a seamless workflow.
 
 
 ## Citation

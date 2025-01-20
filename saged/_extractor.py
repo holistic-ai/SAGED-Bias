@@ -3,7 +3,6 @@ import pandas as pd
 from ._utility import ignore_future_warnings
 from tqdm import tqdm
 from transformers import pipeline
-import warnings
 import numpy as np
 
 from sentence_transformers import SentenceTransformer
@@ -53,10 +52,8 @@ class FeatureExtractor:
     def sentiment_classification(self):
         df = self.benchmark
         print('Using default sentiment classifier: lxyuan/distilbert-base-multilingual-cased-sentiments-student')
-        warnings.filterwarnings("ignore", category=FutureWarning)
         sentiment_classifier = pipeline("text-classification",
                                         model="lxyuan/distilbert-base-multilingual-cased-sentiments-student")
-        warnings.filterwarnings("default", category=FutureWarning)
 
         for col in self.generations:
             df[f'{col}_sentiment_temp'] = df[col].progress_apply(lambda text: FeatureExtractor._relabel(text, sentiment_classifier))
@@ -452,7 +449,7 @@ class FeatureExtractor:
         df = self.benchmark.copy()
         clustered_df = self.benchmark.copy()
 
-        assert segregation is None or segregation in ['category', 'domain', 'source_tag'], "segregation must be None, 'category',  'source_tag', or 'domain'."
+        assert segregation is None or segregation in ['concept', 'domain', 'source_tag'], "segregation must be None, 'concept',  'source_tag', or 'domain'."
 
         segs = df[segregation].unique() if segregation else ['ALL']
 
@@ -474,7 +471,7 @@ class FeatureExtractor:
                 kmeans = KMeans(n_clusters=n_clusters, random_state=0)
                 clusters = kmeans.fit_predict(embeddings)
 
-                # Convert cluster labels to strings and prefix with category name
+                # Convert cluster labels to strings and prefix with concept name
                 cluster_labels = [f"{seg}_{str(label)}" for label in clusters]
 
                 # Assign cluster labels to the DataFrame

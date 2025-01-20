@@ -31,16 +31,16 @@ class SAGEDData:
     }
 
 
-    def __init__(self, domain, category, data_tier, file_name=None):
+    def __init__(self, domain, concept, data_tier, file_name=None):
         self.domain = domain
-        self.category = category
+        self.concept = concept
         self.data_tier = data_tier
         assert data_tier in ['keywords', 'source_finder', 'scraped_sentences',
                              'split_sentences', 'questions'], "Invalid data tier. Choose from 'keywords', 'source_finder', 'scraped_sentences', 'split_sentences', 'questions'."
         # self.tier_order = {value: index for index, value in enumerate(['keywords', 'source_finder', 'scraped_sentences', 'split_sentences'])}
         self.file_name = file_name
         self.data = [{
-            "category": self.category,
+            "concept": self.concept,
             "domain": self.domain}]
 
     @staticmethod
@@ -70,11 +70,11 @@ class SAGEDData:
                 assert isinstance(item, dict), "Each item in the list should be a dictionary."
                 assert 'keywords' in item, "Each dictionary should have a 'keywords' key."
                 assert 'domain' in item, "Each dictionary should have a 'domain' key."
-                assert 'category' in item, "Each dictionary should have a 'category' key."
+                assert 'concept' in item, "Each dictionary should have a 'concept' key."
 
                 if data_tier in ['source_finder', 'scraped_sentences']:
-                    assert 'category_shared_source' in item, "Each dictionary should have a 'category_shared_source' key"
-                    source_finder = item['category_shared_source']
+                    assert 'concept_shared_source' in item, "Each dictionary should have a 'concept_shared_source' key"
+                    source_finder = item['concept_shared_source']
                     check_source_finder_format(source_finder)
 
                 # check keywords format
@@ -101,27 +101,17 @@ class SAGEDData:
                         assert required_keys == set(
                             v.keys()), f"The keywords dictionary of '{k}' should contain only the keys {required_keys}."
 
-        elif data_tier == 'split_sentences':
+        elif data_tier == 'split_sentences' or data_tier == 'questions':
             assert isinstance(data, pd.DataFrame), "Data should be a DataFrame"
             assert 'keyword' in data.columns, "DataFrame must contain 'keyword' column"
-            assert 'category' in data.columns, "DataFrame must contain 'category' column"
+            assert 'concept' in data.columns, "DataFrame must contain 'concept' column"
             assert 'domain' in data.columns, "DataFrame must contain 'domain' column"
             assert 'prompts' in data.columns, "DataFrame must contain 'prompts' column"
             assert 'baseline' in data.columns, "DataFrame must contain 'baseline' column"
 
-        elif data_tier == 'questions':
-            print("IN HERE")
-            assert isinstance(data, pd.DataFrame), "Data should be a DataFrame"
-            assert 'keyword' in data.columns, "DataFrame must contain 'keyword' column"
-            assert 'category' in data.columns, "DataFrame must contain 'category' column"
-            assert 'domain' in data.columns, "DataFrame must contain 'domain' column"
-            assert 'questions' in data.columns, "DataFrame must contain 'questions' column"
-            assert 'original_answer' in data.columns, "DataFrame must contain 'original_answer' column"
-            
-
     @classmethod
-    def load_file(cls, domain, category, data_tier, file_path):
-        instance = cls(domain, category, data_tier, file_path)
+    def load_file(cls, domain, concept, data_tier, file_path):
+        instance = cls(domain, concept, data_tier, file_path)
         try:
             if data_tier == 'split_sentences' or data_tier == 'questions':
                 instance.data = pd.read_csv(file_path)
@@ -137,35 +127,35 @@ class SAGEDData:
         return instance
 
     @classmethod
-    def create_data(cls, domain, category, data_tier, data = None):
-        instance = cls(domain, category, data_tier)
+    def create_data(cls, domain, concept, data_tier, data = None):
+        instance = cls(domain, concept, data_tier)
 
         if data is None:
             if data_tier == 'keywords':
                 instance.data = [{
-                    "category": category,
+                    "concept": concept,
                     "domain": domain,
                     "keywords": {}
                 }]
                 return instance
             elif data_tier == 'source_finder':
                 instance.data = [{
-                    "category": category,
+                    "concept": concept,
                     "domain": domain,
-                    "category_shared_source": [cls.default_source_item],
+                    "concept_shared_source": [cls.default_source_item],
                     "keywords": {}
                 }]
                 return instance
             elif data_tier == 'scraped_sentences':
                 instance.data = [{
-                    "category": category,
+                    "concept": concept,
                     "domain": domain,
-                    "category_shared_source": [cls.default_source_item],
+                    "concept_shared_source": [cls.default_source_item],
                     "keywords": {}
                 }]
                 return instance
-            elif data_tier == 'split_sentences':
-                instance.data = pd.DataFrame(columns=['keyword', 'category', 'domain', 'prompts', 'baseline', 'source_tag'])
+            elif data_tier == 'split_sentences' or data_tier == 'questions':
+                instance.data = pd.DataFrame(columns=['keyword', 'concept', 'domain', 'prompts', 'baseline', 'source_tag'])
                 return instance
 
         try:
@@ -185,31 +175,31 @@ class SAGEDData:
         if data_tier == 'keywords':
             if mode == 'short':
                 for item in self.data:
-                    print(f"Category: {item['category']}, Domain: {item['domain']}")
+                    print(f"concept: {item['concept']}, Domain: {item['domain']}")
                     keywords = ", ".join(item['keywords'].keys())
                     print(f"  Keywords: {keywords}")
             elif mode == 'metadata':
                 for item in self.data:
-                    print(f"Category: {item['category']}, Domain: {item['domain']}")
+                    print(f"concept: {item['concept']}, Domain: {item['domain']}")
                     for keyword, metadata in item['keywords'].items():
                         print(f"  Keyword: {keyword}, Metadata: {metadata}")
         elif data_tier == 'source_finder':
             if mode == 'short':
                 for item in self.data:
-                    print(f"Category: {item['category']}, Domain: {item['domain']}")
-                    for source_list in item['category_shared_source']:
+                    print(f"concept: {item['concept']}, Domain: {item['domain']}")
+                    for source_list in item['concept_shared_source']:
                         print(f"  Sources: {source_list['source_specification']}")
             if mode == 'details':
                 for item in self.data:
-                    print(f"Category: {item['category']}, Domain: {item['domain']}")
-                    print(f"  Sources: {item['category_shared_source']}")
+                    print(f"concept: {item['concept']}, Domain: {item['domain']}")
+                    print(f"  Sources: {item['concept_shared_source']}")
                     for keyword, metadata in item['keywords'].items():
                         print(f"  Keyword: {keyword}, targeted_source: {metadata.get('targeted_source')}")
         elif data_tier == 'scraped_sentences':
             if keyword == None:
                 for item in self.data:
-                    print(f"Category: {item['category']}, Domain: {item['domain']}")
-                    for source_list in item['category_shared_source']:
+                    print(f"concept: {item['concept']}, Domain: {item['domain']}")
+                    for source_list in item['concept_shared_source']:
                         print(f"  Sources: {source_list['source_specification']}")
                     for keyword, metadata in item['keywords'].items():
                         sentences = [i for i, _ in metadata.get('scraped_sentences')]
@@ -250,7 +240,7 @@ class SAGEDData:
                 entity = [entity]
 
             for item in self.data:
-                for sa_dict in item['category_shared_source']:
+                for sa_dict in item['concept_shared_source']:
                     sa_dict['source_specification'] = remove_element_from_list(sa_dict['source_specification'],
                                                                                    entity)
                     print(f"Sources '{entity}' removed from the {sa_dict}.")
@@ -281,7 +271,7 @@ class SAGEDData:
                                 print(
                                     f"Sources '{entity[sa_index_to_remove]['source_specification']}' removed from the data.")
                 else:
-                    for sa_index, sa_dict in enumerate(item['category_shared_source']):
+                    for sa_index, sa_dict in enumerate(item['concept_shared_source']):
                         for sa_index_to_remove, sa_dict_to_remove in enumerate(entity):
                             if sa_dict['source_tag'] == sa_dict_to_remove['source_tag'] and \
                                     sa_dict['source_type'] == sa_dict_to_remove['source_type']:
@@ -369,13 +359,13 @@ class SAGEDData:
             SAGEDData.check_format(source_finder_only=True)(source_finder)
 
             for index, item in enumerate(self.data):
-                if 'category_shared_source' not in item:
-                    self.data[index]['category_shared_source'] = source_finder
+                if 'concept_shared_source' not in item:
+                    self.data[index]['concept_shared_source'] = source_finder
                 if source_finder_target == 'common':
-                    self.data[index]['category_shared_source'].append(source_finder)
-                    self.data[index]['category_shared_source'] = \
-                        merge_source_specifications(self.data[index]['category_shared_source'])
-                    SAGEDData.check_format(source_finder_only=True)(self.data[index]['category_shared_source'])
+                    self.data[index]['concept_shared_source'].append(source_finder)
+                    self.data[index]['concept_shared_source'] = \
+                        merge_source_specifications(self.data[index]['concept_shared_source'])
+                    SAGEDData.check_format(source_finder_only=True)(self.data[index]['concept_shared_source'])
 
                 elif source_finder_target == 'targeted':
                     assert keyword is not None, "Keyword must be provided to add targeted source."
@@ -404,7 +394,7 @@ class SAGEDData:
                 if domain_save:
                     file_name = f"{self.domain}_{self.data_tier}.csv"
                 else:
-                    file_name = f"{self.domain}_{self.category}_{self.data_tier}.csv"
+                    file_name = f"{self.domain}_{self.concept}_{self.data_tier}.csv"
                 if suffix is not None:
                     file_name = f"{file_name[:-4]}_{suffix}.csv"
                 default_path = os.path.join('data', 'customized', self.data_tier)
@@ -418,7 +408,7 @@ class SAGEDData:
         else:
             # Generate default file name if not provided
             if file_path is None:
-                file_name = f"{self.domain}_{self.category}_{self.data_tier}.json"
+                file_name = f"{self.domain}_{self.concept}_{self.data_tier}.json"
                 # Ensure the default file path
                 default_path = os.path.join('data', 'customized', self.data_tier)
                 os.makedirs(default_path, exist_ok=True)
@@ -430,7 +420,7 @@ class SAGEDData:
             print(f"Data saved to {file_path}")
 
     @classmethod
-    def merge(cls, domain, merge_list, category = 'merged', saged_format = True):
+    def merge(cls, domain, merge_list, concept = 'merged', saged_format = True):
         df = pd.DataFrame()
         for data_item in merge_list:
             assert isinstance(data_item, SAGEDData), "Data to merge should be of type saged_data."
@@ -438,7 +428,7 @@ class SAGEDData:
             assert data_item.data_tier == 'split_sentences', "Data to merge should be in split_sentences data tier."
             df = pd.concat([df, data_item.data], ignore_index=True)
 
-        merged_data = SAGEDData.create_data(domain, category, 'split_sentences', df)
+        merged_data = SAGEDData.create_data(domain, concept, 'split_sentences', df)
 
         if saged_format:
             return merged_data

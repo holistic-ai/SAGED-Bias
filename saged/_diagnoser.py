@@ -27,8 +27,8 @@ class DisparityDiagnoser:
         self.summary_df_dict = {}
         self.summary_df_dict_with_p_values = {}
         self.disparity_df = {}
-        self.specifications = ['category']
-        self.full_specification_columns = ['category', 'domain', 'source_tag']
+        self.specifications = ['concept']
+        self.full_specification_columns = ['concept', 'domain', 'source_tag']
 
         # Validate the benchmark DataFrame
         check_benchmark(benchmark)
@@ -105,14 +105,14 @@ class DisparityDiagnoser:
 
         self.benchmark.drop(columns=['prompts', 'keyword'], inplace=True)
 
-        assert group_type in ['domain', 'category'], "Please use 'domain' or 'category' as the group_type."
+        assert group_type in ['domain', 'concept'], "Please use 'domain' or 'concept' as the group_type."
 
         # If target_groups is specified, filter rows based on the group_type
         if self.target_groups:
             if group_type == 'domain':
                 self.benchmark = self.benchmark[self.benchmark['domain'].isin(self.target_groups)]
-            elif group_type == 'category':
-                self.benchmark = self.benchmark[self.benchmark['category'].isin(self.target_groups)]
+            elif group_type == 'concept':
+                self.benchmark = self.benchmark[self.benchmark['concept'].isin(self.target_groups)]
 
         # Escape special characters in baseline, generations, and features
         baseline_pattern = f"{re.escape(self.baseline)}_({'|'.join(map(re.escape, self.features))})"
@@ -168,9 +168,9 @@ class DisparityDiagnoser:
                 shuffled_data = filtered_data.sample(frac=1, replace=False).reset_index(drop=True)
 
                 # Apply the summary function directly on the permuted DataFrame
-                warnings.simplefilter(action='ignore', category=FutureWarning)
+                warnings.simplefilter(action='ignore', concept=FutureWarning)
                 perm_stat = summary_function(shuffled_data)
-                warnings.simplefilter(action='default', category=FutureWarning)
+                warnings.simplefilter(action='default', concept=FutureWarning)
 
                 # Store the permuted statistic
                 perm_stats.append(perm_stat)
@@ -389,12 +389,12 @@ class DisparityDiagnoser:
                     print(f"Dixon's Q test not applicable for column '{col}' because {e}")
                     dixon_q = np.nan
 
-                # Find the max and min values with their corresponding category, domain, source_tag
+                # Find the max and min values with their corresponding concept, domain, source_tag
                 if not values.empty:
                     max_row = df.loc[values.idxmax()]
                     min_row = df.loc[values.idxmin()]
-                    max_info = f"({max_row['category']},{max_row['domain']},{max_row['source_tag']}: {max_row[col]})"
-                    min_info = f"({min_row['category']},{min_row['domain']},{min_row['source_tag']}: {min_row[col]})"
+                    max_info = f"({max_row['concept']},{max_row['domain']},{max_row['source_tag']}: {max_row[col]})"
+                    min_info = f"({min_row['concept']},{min_row['domain']},{min_row['source_tag']}: {min_row[col]})"
                 else:
                     max_info = "No data available for max value."
                     min_info = "No data available for min value."

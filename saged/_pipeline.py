@@ -9,10 +9,10 @@ from ._utility import _update_configuration
 
 class Pipeline:
     _branching_config_scheme = {}
-    _category_benchmark_config_scheme = {}
+    _concept_benchmark_config_scheme = {}
     _domain_benchmark_config_scheme = {}
     _branching_default_config = {}
-    _category_benchmark_default_config = {}
+    _concept_benchmark_default_config = {}
     _domain_benchmark_default_config = {}
     _analytics_config_scheme = {}
     _analytics_default_config = {}
@@ -34,7 +34,7 @@ class Pipeline:
             'counterfactual_baseline': None,
             'generation_function': None,
         }
-        cls._category_benchmark_config_scheme = {
+        cls._concept_benchmark_config_scheme = {
             'keyword_finder': {
                 'require': None,
                 'reading_location': None,
@@ -64,7 +64,7 @@ class Pipeline:
                 'saving': None,
                 'method': None,  # This is related to the source_finder method,
                 'saving_location': None},
-            'prompt_maker': {
+            'prompt_assembler': {
                 'require': None,
                 'method': None,
                 'generation_function': None,
@@ -80,7 +80,7 @@ class Pipeline:
                                                   # If branching is False, then branching_config is not taken into account
                                                   'branching_config': None,
                                                   'shared_config': None,
-                                                  'category_specified_config': None,
+                                                  'concept_specified_config': None,
                                                   'saving': None,
                                                   # If saving is False, then saving_location is not taken into account
                                                   'saving_location': None,
@@ -95,11 +95,11 @@ class Pipeline:
             'descriptor_distance': 'cosine',
             'replacement_description': {},
             'replacement_description_saving': True,
-            'replacement_description_saving_location': f'data/customized/split_sentences/replacement_description.json',
+            'replacement_description_saving_location': f'data/customized/benchmark/replacement_description.json',
             'counterfactual_baseline': True,
             'generation_function': None,
         }
-        cls._category_benchmark_default_config = {
+        cls._concept_benchmark_default_config = {
             'keyword_finder': {
                 'require': True,
                 'reading_location': 'default',
@@ -132,12 +132,12 @@ class Pipeline:
                 'saving': True,
                 'method': 'wiki',  # This is related to the source_finder method,
                 'saving_location': 'default'},
-            'prompt_maker': {
+            'prompt_assembler': {
                 'require': True,
                 'method': 'split_sentences',  # can also have "questions" as a method
-                # prompt_maker_generation_function and prompt_maker_keyword_list are needed for questions
+                # prompt_assembler_generation_function and prompt_assembler_keyword_list are needed for questions
                 'generation_function': None,
-                # prompt_maker_keyword_list must contain at least one keyword. The first keyword must be the keyword
+                # prompt_assembler_keyword_list must contain at least one keyword. The first keyword must be the keyword
                 # of the original scraped data.
                 'keyword_list': None,
                 # User will enter False if they don't want their questions answer checked.
@@ -150,8 +150,8 @@ class Pipeline:
             'categories': [],
             'branching': False,  # If branching is False, then branching_config is not taken into account
             'branching_config': cls._branching_default_config,
-            'shared_config': cls._category_benchmark_default_config,
-            'category_specified_config': {},
+            'shared_config': cls._concept_benchmark_default_config,
+            'concept_specified_config': {},
             'saving': True,  # If saving is False, then saving_location is not taken into account
             'saving_location': 'default',
         }
@@ -198,7 +198,7 @@ class Pipeline:
                 "extraction_saving_location": 'data/customized/' + '_' + 'sbge_benchmark.csv',
             },
             "analysis": {
-                "specifications": ['category', 'source_tag'],
+                "specifications": ['concept', 'source_tag'],
                 "analyzers": ['mean', 'selection_rate', 'precision'],
                 "analyzer_configs": {
                     'selection_rate': {'standard_by': 'mean'},
@@ -214,11 +214,11 @@ class Pipeline:
         pass
 
     @classmethod
-    def concept_benchmark_building(cls, domain, demographic_label, config=None):
+    def build_concept_benchmark(cls, domain, demographic_label, config=None):
         cls._set_config()
         configuration = _update_configuration(
-            cls._category_benchmark_config_scheme.copy(),
-            cls._category_benchmark_default_config.copy(),
+            cls._concept_benchmark_config_scheme.copy(),
+            cls._concept_benchmark_default_config.copy(),
             config.copy())
 
         # Unpacking keyword_finder section
@@ -254,12 +254,12 @@ class Pipeline:
         ]
         )
 
-        # Unpacking prompt_maker section
-        prompt_maker_config = configuration['prompt_maker']
-        prompt_maker_require, prompt_maker_method, prompt_maker_generation_function, \
-        prompt_maker_keyword_list, prompt_maker_answer_check, prompt_maker_saving_location, \
-        prompt_maker_max_sample_number = (
-            prompt_maker_config[key] for key in [
+        # Unpacking prompt_assembler section
+        prompt_assembler_config = configuration['prompt_assembler']
+        prompt_assembler_require, prompt_assembler_method, prompt_assembler_generation_function, \
+        prompt_assembler_keyword_list, prompt_assembler_answer_check, prompt_assembler_saving_location, \
+        prompt_assembler_max_sample_number = (
+            prompt_assembler_config[key] for key in [
             'require', 'method', 'generation_function', 'keyword_list', 'answer_check',
             'saving_location', 'max_benchmark_length'
         ]
@@ -277,7 +277,7 @@ class Pipeline:
         assert scraper_method in ['wiki',
                                   'local_files'], "Invalid scraper method. Choose either 'wiki' or 'local_files'"
         assert source_finder_method == scraper_method, "source_finder_finder and scraper methods must be the same"
-        assert prompt_maker_method in ['split_sentences',
+        assert prompt_assembler_method in ['split_sentences',
                                        'questions'], "Invalid prompt maker method. Choose 'split_sentences' or 'questions'"
 
         '''
@@ -291,7 +291,7 @@ class Pipeline:
 
         if keyword_finder_require:
             if keyword_finder_method == 'embedding_on_wiki':
-                kw = KeywordFinder(domain=domain, category=demographic_label).find_keywords_by_embedding_on_wiki(
+                kw = KeywordFinder(domain=domain, concept=demographic_label).wiki_embeddings(
                     n_keywords=keyword_finder_keyword_number, embedding_model=keyword_finder_embedding_model,
                     max_adjustment=keyword_finder_max_adjustment).add(
                     keyword=demographic_label)
@@ -305,7 +305,7 @@ class Pipeline:
                     if key in default_values:
                         default_values[key] = keyword_finder_llm_info[key]
 
-                kw = KeywordFinder(domain=domain, category=demographic_label).find_keywords_by_llm_inquiries(
+                kw = KeywordFinder(domain=domain, concept=demographic_label).lm_inquiries(
                     **default_values).add(
                     keyword=demographic_label)
 
@@ -321,7 +321,7 @@ class Pipeline:
                     kw.save(file_path=keyword_finder_saving_location)
 
         elif (not keyword_finder_require) and isinstance(keyword_finder_manual_keywords, list):
-            kw = saged.create_data(domain=domain, category=demographic_label, data_tier='keywords')
+            kw = saged.create_data(domain=domain, concept=demographic_label, data_tier='keywords')
             for keyword in keyword_finder_manual_keywords:
                 kw = kw.add(keyword)
 
@@ -329,12 +329,12 @@ class Pipeline:
             filePath = ""
             if keyword_finder_reading_location == 'default':
                 filePath = f'data/customized/keywords/{domain}_{demographic_label}_keywords.json'
-                kw = saged.load_file(domain=domain, category=demographic_label,
+                kw = saged.load_file(domain=domain, concept=demographic_label,
                                      file_path=filePath,
                                      data_tier='keywords')
             else:
                 filePath = keyword_finder_reading_location
-                kw = saged.load_file(domain=domain, category=demographic_label,
+                kw = saged.load_file(domain=domain, concept=demographic_label,
                                      file_path=filePath, data_tier='keywords')
 
             if kw != None:
@@ -344,12 +344,12 @@ class Pipeline:
 
         if source_finder_require:
             if source_finder_method == 'wiki':
-                sa = SourceFinder(kw, source_tag='wiki').find_scrape_urls_on_wiki(
+                sa = SourceFinder(kw, source_tag='wiki').wiki(
                     top_n=source_finder_scrap_area_number, scrape_backlinks=source_finder_scrap_backlinks)
             elif source_finder_method == 'local_files':
                 if source_finder_local_file == None:
                     raise ValueError(f"Unable to read keywords from {source_finder_local_file}. Can't scrap area.")
-                sa = SourceFinder(kw, source_tag='local').find_scrape_paths_local(source_finder_local_file)
+                sa = SourceFinder(kw, source_tag='local').local(source_finder_local_file)
             print('...Sources for Scraping located...')
 
             if source_finder_saving:
@@ -361,12 +361,12 @@ class Pipeline:
             filePath = ""
             if source_finder_reading_location == 'default':
                 filePath = f'data/customized/source_finder/{domain}_{demographic_label}_source_finder.json'
-                sa = saged.load_file(domain=domain, category=demographic_label,
+                sa = saged.load_file(domain=domain, concept=demographic_label,
                                      file_path=filePath,
                                      data_tier='source_finder')
             else:
                 filePath = source_finder_reading_location
-                sa = saged.load_file(domain=domain, category=demographic_label,
+                sa = saged.load_file(domain=domain, concept=demographic_label,
                                      file_path=source_finder_reading_location, data_tier='source_finder')
 
             if sa != None:
@@ -386,18 +386,18 @@ class Pipeline:
                     sc.save()
                 else:
                     sc.save(file_path=scraper_saving_location)
-        elif prompt_maker_require:
+        elif prompt_assembler_require:
             filePath = ""
             if scraper_reading_location == 'default':
                 filePath = f'data/customized/scraped_sentences/{domain}_{demographic_label}_scraped_sentences.json'
-                sc = saged.load_file(domain=domain, category=demographic_label,
+                sc = saged.load_file(domain=domain, concept=demographic_label,
                                      file_path=filePath,
                                      data_tier='scraped_sentences')
                 print(
                     f'Scraped sentences loaded from data/customized/scraped_sentences/{domain}_{demographic_label}_scraped_sentences.json')
             else:
                 filePath = scraper_reading_location
-                sc = saged.load_file(domain=domain, category=demographic_label, file_path=scraper_reading_location,
+                sc = saged.load_file(domain=domain, concept=demographic_label, file_path=scraper_reading_location,
                                      data_tier='scraped_sentences')
                 print(f'Scraped sentences loaded from {scraper_reading_location}')
 
@@ -407,23 +407,23 @@ class Pipeline:
                 raise ValueError(f"Unable to load scraped sentences from {filePath}. Can't make prompts.")
 
         pm_result = None
-        if prompt_maker_method == 'split_sentences' and prompt_maker_require:
+        if prompt_assembler_method == 'split_sentences' and prompt_assembler_require:
             pm = PromptMaker(sc)
             pm_result = pm.split_sentences()
-        elif prompt_maker_method == 'questions' and prompt_maker_require:
+        elif prompt_assembler_method == 'questions' and prompt_assembler_require:
             pm = PromptMaker(sc)
-            pm_result = pm.make_questions(generation_function=prompt_maker_generation_function,
-                                          keyword_reference=prompt_maker_keyword_list,
-                                          answer_check=prompt_maker_answer_check,
-                                          max_questions=prompt_maker_max_sample_number)
+            pm_result = pm.make_questions(generation_function=prompt_assembler_generation_function,
+                                          keyword_reference=prompt_assembler_keyword_list,
+                                          answer_check=prompt_assembler_answer_check,
+                                          max_questions=prompt_assembler_max_sample_number)
         if pm_result is None:
             raise ValueError(f"Unable to make prompts out of no scraped sentences")
-        pm_result = pm_result.sub_sample(prompt_maker_max_sample_number, floor=True,
+        pm_result = pm_result.sub_sample(prompt_assembler_max_sample_number, floor=True,
                                          saged_format=True)  ### There is likely a bug
-        if prompt_maker_saving_location == 'default':
+        if prompt_assembler_saving_location == 'default':
             pm_result.save()
         else:
-            pm_result.save(file_path=prompt_maker_saving_location)
+            pm_result.save(file_path=prompt_assembler_saving_location)
 
         print(f'Benchmark building for {demographic_label} completed.')
         print('\n=====================================================\n')
@@ -431,8 +431,8 @@ class Pipeline:
         return pm_result
 
     @classmethod
-    def domain_benchmark_building(cls, domain, config=None):
-        def _merge_category_specified_configuration(domain_configuration):
+    def build_benchmark(cls, domain, config=None):
+        def _merge_concept_specified_configuration(domain_configuration):
 
             def _simple_update_configuration(default_configuration, updated_configuration):
                 """
@@ -440,7 +440,7 @@ class Pipeline:
                 only if the keys already exist in the default configuration.
 
                 Args:
-                - default_category_configuration (dict): The default configuration dictionary.
+                - default_concept_configuration (dict): The default configuration dictionary.
                 - updated_configuration (dict): The updated configuration dictionary with new values.
 
                 Returns:
@@ -460,33 +460,33 @@ class Pipeline:
                             default_configuration[key] = value
                 return default_configuration
 
-            specified_config = domain_configuration['category_specified_config'].copy()
+            specified_config = domain_configuration['concept_specified_config'].copy()
             domain_configuration = _simple_update_configuration(Pipeline._domain_benchmark_default_config.copy(),
                                                                 domain_configuration)
             domain_configuration['shared_config'] = _simple_update_configuration(
-                Pipeline._category_benchmark_default_config .copy(), domain_configuration['shared_config'].copy())
+                Pipeline._concept_benchmark_default_config .copy(), domain_configuration['shared_config'].copy())
 
-            base_category_config = {}
+            base_concept_config = {}
             for cat in domain_configuration['categories']:
-                base_category_config[cat] = domain_configuration['shared_config'].copy()
+                base_concept_config[cat] = domain_configuration['shared_config'].copy()
 
             # print('start ====================== \n\n')
-            merge_category_config = _simple_update_configuration(base_category_config.copy(), specified_config.copy())
-            # print(merge_category_config)
-            return merge_category_config
+            merge_concept_config = _simple_update_configuration(base_concept_config.copy(), specified_config.copy())
+            # print(merge_concept_config)
+            return merge_concept_config
 
         cls._set_config()
-        category_list = config['categories']
-        category_specified_configuration = _merge_category_specified_configuration(config.copy())
+        concept_list = config['categories']
+        concept_specified_configuration = _merge_concept_specified_configuration(config.copy())
         configuration = _update_configuration(
             cls._domain_benchmark_config_scheme.copy(),
             cls._domain_benchmark_default_config.copy(),
             config.copy())
 
-        domain_benchmark = saged.create_data(domain=domain, category='all', data_tier='split_sentences')
-        for category in category_list:
-            cat_result = cls.concept_benchmark_building(domain, category, category_specified_configuration[category])
-            print(f'Benchmark building for {category} completed.')
+        domain_benchmark = saged.create_data(domain=domain, concept='all', data_tier='split_sentences')
+        for concept in concept_list:
+            cat_result = cls.build_concept_benchmark(domain, concept, concept_specified_configuration[concept])
+            print(f'Benchmark building for {concept} completed.')
             domain_benchmark = saged.merge(domain, [domain_benchmark, cat_result])
 
             if configuration['saving']:
@@ -496,7 +496,7 @@ class Pipeline:
                     domain_benchmark.save(file_path=configuration['saving_location'])
 
         if configuration['branching']:
-            empty_ss = saged.create_data(category='merged', domain=domain, data_tier='scraped_sentences')
+            empty_ss = saged.create_data(concept='merged', domain=domain, data_tier='scraped_sentences')
             pmr = PromptMaker(empty_ss)
             pmr.output_df = domain_benchmark.data
             domain_benchmark = pmr.branching(branching_config=configuration['branching_config'])
@@ -509,7 +509,7 @@ class Pipeline:
         return domain_benchmark
 
     @classmethod
-    def analytics(cls, config, domain='unspecified'):
+    def run_benchmark(cls, config, domain='unspecified'):
         cls._set_config()
         v = _update_configuration(
             cls._analytics_config_scheme.copy(),
@@ -580,7 +580,3 @@ class Pipeline:
                 disparity_calibrated_saving_location = v['analysis']['disparity_saving_location'].replace('.csv',
                                                                                                           '_calibrated.csv')
                 df.to_csv(disparity_calibrated_saving_location, index=False)
-
-    @classmethod
-    def pipeline(cls, config, domain='unspecified'):
-        pass

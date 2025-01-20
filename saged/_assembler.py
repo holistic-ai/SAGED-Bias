@@ -21,18 +21,16 @@ class PromptAssembler:
         keyword_data_tier = scraped_sentence_saged_data.data_tier
         assert _saged_data.tier_order[keyword_data_tier] == _saged_data.tier_order[
             'scraped_sentences'], "You need an saged_data of scraped_sentences data_tier."
-        self.category = scraped_sentence_saged_data.category
+        self.concept = scraped_sentence_saged_data.concept
         self.domain = scraped_sentence_saged_data.domain
         self.data = scraped_sentence_saged_data.data
         self.output_df = pd.DataFrame()
 
-        # download('punkt')
-        # download('stopwords')
         # Load the English model for spaCy
         self.nlp = spacy.load("en_core_web_sm")
 
-    def scraped_sentence_saged_data(self):
-        return _saged_data.create_data(category=self.category, domain=self.domain, data_tier='split_sentences',
+    def scraped_sentence_to_saged_data(self, data_tier='split_sentences'):
+        return _saged_data.create_data(concept=self.concept, domain=self.domain, data_tier=data_tier,
                                    data=self.output_df)
 
     @ignore_future_warnings
@@ -105,17 +103,17 @@ class PromptAssembler:
 
         # Initialize the list to store the split sentences
         results = []
-        for category_item in self.data:
-            category = category_item.get("category")
-            domain = category_item.get("domain")
-            for keyword, keyword_data in tqdm(category_item['keywords'].items()):
+        for concept_item in self.data:
+            concept = concept_item.get("concept")
+            domain = concept_item.get("domain")
+            for keyword, keyword_data in tqdm(concept_item['keywords'].items()):
                 for sentence_with_tag in tqdm(keyword_data['scraped_sentences']):
                     part1, part2, success = split_individual_sentence(sentence_with_tag[0], True, keyword=keyword)
 
                     if part2:
                         result = {
                             "keyword": keyword,
-                            "category": category,
+                            "concept": concept,
                             "domain": domain,
                             "prompts": part1,
                             "baseline": sentence_with_tag[0],
@@ -127,7 +125,7 @@ class PromptAssembler:
                 # Create a DataFrame
                 self.output_df = pd.DataFrame(results)
 
-        return self.scraped_sentence_saged_data()
+        return self.scraped_sentence_to_saged_data(data_tier='split_sentences')
 
     @ignore_future_warnings
     def make_questions(self, generation_function, keyword_reference=None, answer_check=True, max_questions=None):
@@ -203,24 +201,24 @@ class PromptAssembler:
             return True, keyword_dict
 
         results = []
-        for category_item in self.data:
-            category = category_item.get("category")
-            domain = category_item.get("domain")
+        for concept_item in self.data:
+            concept = concept_item.get("concept")
+            domain = concept_item.get("domain")
             key_dict = {}
 
 
-            for keyword_data in tqdm(category_item['keywords'].items(), desc="Going through keywords"):
+            for keyword_data in tqdm(concept_item['keywords'].items(), desc="Going through keywords"):
                 for sentence_with_tag in tqdm(keyword_data[1]['scraped_sentences'],
                                               desc="Going through scraped sentences"):
                     if max_questions != None and len(results) >= max_questions:
                         break
                     question = get_question(sentence=sentence_with_tag[0], generation_function=generation_function,
-                                            keyword=category, keyword_list=keyword_reference)
+                                            keyword=concept, keyword_list=keyword_reference)
                     if keyword_reference is not None:
                         if len(keyword_reference) > 1 and answer_check:
                             # only check_question to find questions for other keywords if key_word list is greater than 1
                             check, key_dict = check_question(question=question, generation_function=generation_function,
-                                                             keyword=category, keyword_list=keyword_reference,
+                                                             keyword=concept, keyword_list=keyword_reference,
                                                              answer_check=answer_check)
                         else:
                             check = True
@@ -233,17 +231,17 @@ class PromptAssembler:
                     while check == False and bad_count < 2:
                         print("Trying question generation again")
                         question = get_question(sentence=sentence_with_tag[0], generation_function=generation_function,
-                                                keyword=category, keyword_list=keyword_reference,
+                                                keyword=concept, keyword_list=keyword_reference,
                                                 bad_questions=key_dict)
                         check, key_dict = check_question(question=question, generation_function=generation_function,
-                                                         keyword=category, keyword_list=keyword_reference,
+                                                         keyword=concept, keyword_list=keyword_reference,
                                                          bad_questions=key_dict, answer_check=answer_check)
                         bad_count += 1
 
                     if check:
                         result = {
-                            "keyword": category,
-                            "category": category,
+                            "keyword": concept,
+                            "concept": concept,
                             "domain": domain,
                             "prompts": question,
                             "baseline": sentence_with_tag[0],
@@ -253,12 +251,12 @@ class PromptAssembler:
 
                 self.output_df = pd.DataFrame(results)
 
-            return self.scraped_sentence_saged_data()
+            return self.scraped_sentence_to_saged_data(data_tier='questions')
 
     @ignore_future_warnings
     def merge(self, prompt_df):
         self.output_df = pd.concat([self.output_df, prompt_df])
-        return self.scraped_sentence_saged_data()
+        return self.scraped_sentence_to_saged_data()
 
     @ignore_future_warnings
     def branching(self, branching_config = None):
@@ -297,7 +295,7 @@ class PromptAssembler:
         branching_config = _update_configuration(branching_config_scheme, default_branching_config, branching_config)
 
 
-        def replacement_descriptor(df, original_category, replace_category, replacing: list[str] or str, gf=None,
+        def replacement_descriptor(df, original_concept, replace_concept, replacing: list[str] or str, gf=None,
                                    embedding_model='paraphrase-Mpnet-base-v2',
                                    descriptor_threold='Auto', descriptor_distance='cosine'):
 
@@ -386,21 +384,21 @@ class PromptAssembler:
                     print("No JSON found in the string.")
 
 
-            df_category = df[df['category'] == original_category]
+            df_concept = df[df['concept'] == original_concept]
             word_bank = ''
             for replace in replacing:
-                word_bank += ' '.join(list(set(clean_sentences_and_join(df_category[replace].tolist()).split(' '))))
+                word_bank += ' '.join(list(set(clean_sentences_and_join(df_concept[replace].tolist()).split(' '))))
             if descriptor_threold == 'Auto':
                 print('Obtaining the similar words...')
-                similar_tokens = find_similar_words(word_bank, original_category)
+                similar_tokens = find_similar_words(word_bank, original_concept)
                 print('Obtaining the threshold...')
                 thresholds_list = [similarity for similarity in similar_tokens]
-                checker = lambda x: check_if_threshold_can_go_higher(similar_tokens, x, original_category)
+                checker = lambda x: check_if_threshold_can_go_higher(similar_tokens, x, original_concept)
                 threshold = iterative_guessing(thresholds_list, checker)
                 words = [word for word, similarity in similar_tokens if similarity >= threshold]
 
             else:
-                similar_tokens = find_similar_words(word_bank, original_category, threshold=float(descriptor_threold))
+                similar_tokens = find_similar_words(word_bank, original_concept, threshold=float(descriptor_threold))
                 words = [word for word in similar_tokens]
 
             print('Obtaining the replacement...')
@@ -408,14 +406,14 @@ class PromptAssembler:
             while k < 5:
                 k += 1
                 try:
-                    result = dict_extraction(gf(replacer_prompts(original_category, replace_category, words)))
+                    result = dict_extraction(gf(replacer_prompts(original_concept, replace_concept, words)))
                     assert isinstance(result, list) and all(isinstance(item, dict) for item in result)
                     combined_dict = {k: v for d in result for k, v in d.items()}
                     return combined_dict
                 except AssertionError:
                     print('Try again...')
                     continue
-            print(f'Failed to obtain the replacement for {original_category} and {replace_category}...')
+            print(f'Failed to obtain the replacement for {original_concept} and {replace_concept}...')
             return {}
 
         def add_and_clean_replacement_pairs(replacement_dict):
@@ -468,7 +466,7 @@ class PromptAssembler:
         gef = branching_config['generation_function']
 
         if branching_config['branching_pairs'] == 'all':
-            branching_pairs = list(itertools.combinations(df['category'].unique().tolist(), 2))
+            branching_pairs = list(itertools.combinations(df['concept'].unique().tolist(), 2))
             # Include the reverse of each pair
             branching_pairs = branching_pairs + [(b, a) for a, b in branching_pairs]
             # Optionally, you can remove duplicates if needed
@@ -486,23 +484,23 @@ class PromptAssembler:
             df = df[df['source_tag'] == branching_config['source_restriction']]
 
         df_result = df.copy()
-        for category_pair in tqdm(branching_pairs, desc='Branching pairs'):
+        for concept_pair in tqdm(branching_pairs, desc='Branching pairs'):
             if branching_config['replacement_descriptor_require']:
                 assert gef is not None, "Generation function is required for replacement descriptor generation."
                 if branching_config['counterfactual_baseline']:
-                    rd = replacement_descriptor(df, category_pair[0], category_pair[1], ['baseline', 'prompts'], gf=gef)
+                    rd = replacement_descriptor(df, concept_pair[0], concept_pair[1], ['baseline', 'prompts'], gf=gef)
                 else:
-                    rd = replacement_descriptor(df, category_pair[0], category_pair[1], ["prompts"], gf=gef)
-                # Ensure category_pair[0] exists in replacement_description
-                if category_pair[0] not in replacement_description:
-                    replacement_description[category_pair[0]] = {}
+                    rd = replacement_descriptor(df, concept_pair[0], concept_pair[1], ["prompts"], gf=gef)
+                # Ensure concept_pair[0] exists in replacement_description
+                if concept_pair[0] not in replacement_description:
+                    replacement_description[concept_pair[0]] = {}
 
-                # Ensure category_pair[1] exists within the nested dictionary
-                if category_pair[1] not in replacement_description[category_pair[0]]:
-                    replacement_description[category_pair[0]][category_pair[1]] = {}
+                # Ensure concept_pair[1] exists within the nested dictionary
+                if concept_pair[1] not in replacement_description[concept_pair[0]]:
+                    replacement_description[concept_pair[0]][concept_pair[1]] = {}
 
                 # Update the existing dictionary with the contents of rd
-                replacement_description[category_pair[0]][category_pair[1]].update(rd)
+                replacement_description[concept_pair[0]][concept_pair[1]].update(rd)
                 replacement_description = add_and_clean_replacement_pairs(replacement_description)
                 if branching_config['replacement_description_saving']:
                     with open(branching_config['replacement_description_saving_location'], 'w', encoding='utf-8') as f:
@@ -510,18 +508,18 @@ class PromptAssembler:
             else:
                 replacement_description = add_and_clean_replacement_pairs(replacement_description)
 
-            rd = replacement_description[category_pair[0]][category_pair[1]]
-            df_new = df[df['category'] == category_pair[0]].copy()
+            rd = replacement_description[concept_pair[0]][concept_pair[1]]
+            df_new = df[df['concept'] == concept_pair[0]].copy()
             df_new['prompts'] = df_new['prompts'].apply(lambda x: replace_terms(x, rd).capitalize())
             if branching_config['counterfactual_baseline']:
                 df_new['baseline'] = df_new['baseline'].apply(lambda x: replace_terms(x, rd).capitalize())
-            df_new['source_tag'] = df_new.apply(lambda row: f'br_{row["source_tag"]}_cat_{row["category"]}', axis=1)
-            df_new['category'] = df_new['category'].apply(lambda x: replace_terms(x, rd))
+            df_new['source_tag'] = df_new.apply(lambda row: f'br_{row["source_tag"]}_cat_{row["concept"]}', axis=1)
+            df_new['concept'] = df_new['concept'].apply(lambda x: replace_terms(x, rd))
             df_new['keyword'] = df_new['keyword'].apply(lambda x: replace_terms(x, rd))
             df_result = pd.concat([df_result, df_new])
 
             self.output_df = df_result
 
-        return self.scraped_sentence_saged_data()
+        return self.scraped_sentence_to_saged_data()
 
 
