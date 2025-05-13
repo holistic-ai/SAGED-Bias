@@ -5,6 +5,8 @@ from scipy.optimize import minimize
 from typing import List, Dict, Tuple
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
+import json
 
 class Mitigator:
     def __init__(self, extraction_path: str):
@@ -18,6 +20,8 @@ class Mitigator:
         self.generations = [col for col in self.df.columns if col.endswith('_sentiment_score') 
                           and not col.startswith('baseline')]
         self.concepts = self.df['concept'].unique()
+        self.output_dir = 'data/xntion/mitigator'
+        os.makedirs(self.output_dir, exist_ok=True)
         
     def get_distribution(self, data: pd.Series, bins: int = 20) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -135,7 +139,7 @@ class Mitigator:
     
     def plot_distributions(self, concept: str, weights: Dict[str, float] = None):
         """
-        Plot distributions for a specific concept
+        Plot distributions for a specific concept and save the plot
         
         Args:
             concept (str): Concept to plot
@@ -164,21 +168,73 @@ class Mitigator:
         plt.xlabel('Sentiment Score')
         plt.ylabel('Density')
         plt.legend()
-        plt.show()
+        
+        # Save the plot
+        plot_path = os.path.join(self.output_dir, f'{concept}_distributions.png')
+        plt.savefig(plot_path, bbox_inches='tight', dpi=300)
+        plt.close()
+
+    def plot_weights_heatmap(self, weights: Dict[str, Dict[str, float]]):
+        """
+        Create and save a heatmap visualization of the optimized weights
+        
+        Args:
+            weights (Dict[str, Dict[str, float]]): Dictionary of optimized weights
+        """
+        # Convert weights to DataFrame
+        df_weights = pd.DataFrame(weights).T
+        
+        # Clean up column names by removing '_sentiment_score'
+        df_weights.columns = [col.replace('_sentiment_score', '') for col in df_weights.columns]
+        
+        # Create figure
+        plt.figure(figsize=(12, 8))
+        
+        # Create heatmap
+        sns.heatmap(df_weights, 
+                   annot=True, 
+                   fmt='.2f', 
+                   cmap='YlOrRd',
+                   cbar_kws={'label': 'Weight Value'})
+        
+        plt.title('Optimized Weights Distribution Across Concepts')
+        plt.xlabel('Sentiment Type')
+        plt.ylabel('Concept')
+        
+        # Rotate x-axis labels for better readability
+        plt.xticks(rotation=45, ha='right')
+        
+        # Adjust layout to prevent label cutoff
+        plt.tight_layout()
+        
+        # Save the plot
+        plot_path = os.path.join(self.output_dir, 'weights_heatmap.png')
+        plt.savefig(plot_path, bbox_inches='tight', dpi=300)
+        plt.close()
 
 def main():
     # Example usage
     mitigator = Mitigator('data/xntion/extractions.csv')
     optimized_weights = mitigator.mitigate()
     
-    # Print optimized weights
+    # Save optimized weights to JSON
+    weights_path = os.path.join(mitigator.output_dir, 'optimized_weights.json')
+    with open(weights_path, 'w') as f:
+        json.dump(optimized_weights, f, indent=4)
+    
+    # Create and save weights heatmap
+    mitigator.plot_weights_heatmap(optimized_weights)
+    
+    # Print optimized weights and generate plots
     for concept, weights in optimized_weights.items():
         print(f"\nOptimized weights for {concept}:")
         for gen, weight in weights.items():
             print(f"{gen}: {weight:.3f}")
         
-        # Plot distributions
+        # Plot and save distributions
         mitigator.plot_distributions(concept, weights)
+    
+    print(f"\nResults saved in: {mitigator.output_dir}")
 
 if __name__ == "__main__":
     main()
