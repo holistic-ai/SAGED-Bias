@@ -380,7 +380,6 @@ class DisparityDiagnoser:
                     max_z_score = np.max(z_scores)
                 else:
                     max_z_score = np.nan
-                    print(f"No valid z-scores for column {col}.")
 
                 # Calculate Dixon's Q test statistic for potential outliers
                 try:

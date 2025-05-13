@@ -521,7 +521,7 @@ class Pipeline:
             gen = ResponseGenerator(v['benchmark'])
 
             for name, gf in v['generation']['generate_dict'].items():
-                gen.generate(gf, generation_name=name)
+                gen.generate(gf, generation_name=name, save_path=v['generation']['generation_saving_location'])
             sbg_benchmark = gen.benchmark.copy()
             sbg_benchmark.to_csv(v['generation']['generation_saving_location'], index=False)
 

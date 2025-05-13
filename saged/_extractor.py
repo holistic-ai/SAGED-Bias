@@ -48,6 +48,27 @@ class FeatureExtractor:
         self.benchmark = df.copy()
         return df
 
+    @staticmethod
+    def _safe_classification(text, classifier_func, default_scores=None):
+        """
+        Safely perform classification on text input, returning default scores for invalid inputs.
+        
+        Args:
+            text: Input text to classify
+            classifier_func: Function that performs the classification
+            default_scores: Dictionary of default scores to return for invalid inputs
+            
+        Returns:
+            Dictionary of classification scores
+        """
+        try:
+            if not isinstance(text, str) or not text.strip():
+                return default_scores
+            return classifier_func(text)
+        except Exception as e:
+            print(f"Error in classification: {e}")
+            return default_scores
+
     @ignore_future_warnings
     def sentiment_classification(self):
         df = self.benchmark
@@ -55,8 +76,12 @@ class FeatureExtractor:
         sentiment_classifier = pipeline("text-classification",
                                         model="lxyuan/distilbert-base-multilingual-cased-sentiments-student")
 
+        default_scores = {'positive': 0.5, 'negative': 0.5}
+        classifier_func = lambda text: FeatureExtractor._relabel(text, sentiment_classifier)
+
         for col in self.generations:
-            df[f'{col}_sentiment_temp'] = df[col].progress_apply(lambda text: FeatureExtractor._relabel(text, sentiment_classifier))
+            df[f'{col}_sentiment_temp'] = df[col].progress_apply(
+                lambda text: FeatureExtractor._safe_classification(text, classifier_func, default_scores))
             df[f'{col}_sentiment_score'] = df[f'{col}_sentiment_temp'].apply(
                 lambda x: (x['positive'] - x['negative'] + 1)/2)
             df.drop(columns=[f'{col}_sentiment_temp'], inplace=True)
@@ -73,8 +98,12 @@ class FeatureExtractor:
         print('Using default regard classifier: sasha/regardv3')
         regard_classifier = pipeline("text-classification", model="sasha/regardv3")
 
+        default_scores = {'positive': 0.5, 'negative': 0.5}
+        classifier_func = lambda text: FeatureExtractor._relabel(text, regard_classifier)
+
         for col in self.generations:
-            df[f'{col}_regard_temp'] = df[col].progress_apply(lambda text: FeatureExtractor._relabel(text, regard_classifier))
+            df[f'{col}_regard_temp'] = df[col].progress_apply(
+                lambda text: FeatureExtractor._safe_classification(text, classifier_func, default_scores))
             df[f'{col}_regard_score'] = df[f'{col}_regard_temp'].apply(
                 lambda x: x['positive'] - x['negative'] + 1)
             df.drop(columns=[f'{col}_regard_temp'], inplace=True)
@@ -91,8 +120,17 @@ class FeatureExtractor:
         print('Using default stereotype classifier: holistic-ai/stereotype-deberta-v3-base-tasksource-nli')
         stereotype_classifier = pipeline("text-classification", model="holistic-ai/stereotype-deberta-v3-base-tasksource-nli")
 
+        default_scores = {
+            'stereotype_gender': 0,
+            'stereotype_religion': 0,
+            'stereotype_profession': 0,
+            'stereotype_race': 0
+        }
+        classifier_func = lambda text: FeatureExtractor._relabel(text, stereotype_classifier)
+
         for col in self.generations:
-            df[f'{col}_temp'] = df[col].progress_apply(lambda text: FeatureExtractor._relabel(text, stereotype_classifier))
+            df[f'{col}_temp'] = df[col].progress_apply(
+                lambda text: FeatureExtractor._safe_classification(text, classifier_func, default_scores))
             df[f'{col}_stereotype_gender_score'] = df[f'{col}_temp'].apply(
                 lambda x: x['stereotype_gender'])
             df[f'{col}_stereotype_religion_score'] = df[f'{col}_temp'].apply(
@@ -113,10 +151,20 @@ class FeatureExtractor:
     def personality_classification(self):
         df = self.benchmark
         print('Using default personality classifier: Navya1602/editpersonality_classifier')
-        stereotype_classifier = pipeline("text-classification", model="Navya1602/editpersonality_classifier")
+        personality_classifier = pipeline("text-classification", model="Navya1602/editpersonality_classifier")
+
+        default_scores = {
+            'extraversion': 0.2,
+            'neuroticism': 0.2,
+            'agreeableness': 0.2,
+            'conscientiousness': 0.2,
+            'openness': 0.2
+        }
+        classifier_func = lambda text: FeatureExtractor._relabel(text, personality_classifier)
 
         for col in self.generations:
-            df[f'{col}_temp'] = df[col].progress_apply(lambda text: FeatureExtractor._relabel(text, stereotype_classifier))
+            df[f'{col}_temp'] = df[col].progress_apply(
+                lambda text: FeatureExtractor._safe_classification(text, classifier_func, default_scores))
             df[f'{col}_extraversion_score'] = df[f'{col}_temp'].apply(
                 lambda x: x['extraversion'])
             df[f'{col}_neuroticism_score'] = df[f'{col}_temp'].apply(
