@@ -212,7 +212,6 @@ class SAGEDData:
             print(self.data)
 
     def remove(self, entity, data_tier=None, keyword=None, removal_range='all'):
-
         def remove_element_from_list(main_list, sublist):
             for element in sublist:
                 if element in main_list:
@@ -285,13 +284,15 @@ class SAGEDData:
                 for keyword, metadata in item['keywords'].items():
                     metadata['scraped_sentences'].remove(entity)
                     print(f"scraped sentence '{entity}' removed from the data.")
-        if data_tier == 'split_sentences':
-            print("Cannot remove from split sentences data, it is a DataFrame.")
-        if data_tier == 'questions':
-            print("Cannot remove from questions data, it is a DataFrame.")
+        if data_tier in ['split_sentences', 'questions']:
+            if isinstance(self.data, pd.DataFrame):
+                # Remove rows where the entity matches any of the specified columns
+                self.data = self.data[~self.data.isin([entity]).any(axis=1)]
+                print(f"Removed rows containing '{entity}' from the DataFrame.")
+            else:
+                print(f"Cannot remove from {data_tier} data, it is not in DataFrame format.")
 
     def add(self, keyword=None, source_finder=None, metadata=None, source_finder_target='common', data_tier=None):
-
         def merge_source_specifications(data):
             """
             Merges the source_specification lists for unique combinations of
@@ -383,8 +384,17 @@ class SAGEDData:
                 self.data[index]['keywords'][keyword]['scraped_sentences'].append(source_finder)
                 return self
 
-        if data_tier == 'split_sentences':
-            print("Cannot add to split sentences data, it is a DataFrame.")
+        if data_tier in ['split_sentences', 'questions']:
+            if isinstance(self.data, pd.DataFrame):
+                if isinstance(source_finder, dict):
+                    # Add a new row to the DataFrame
+                    new_row = pd.DataFrame([source_finder])
+                    self.data = pd.concat([self.data, new_row], ignore_index=True)
+                    print(f"Added new row to {data_tier} DataFrame.")
+                else:
+                    print(f"Source finder must be a dictionary for {data_tier} data tier.")
+            else:
+                print(f"Cannot add to {data_tier} data, it is not in DataFrame format.")
             return self
 
     def save(self, file_path=None, domain_save=False, suffix=None):
@@ -425,10 +435,12 @@ class SAGEDData:
         for data_item in merge_list:
             assert isinstance(data_item, SAGEDData), "Data to merge should be of type saged_data."
             assert data_item.domain == domain, "Data to merge should have the same domain."
-            assert data_item.data_tier == 'split_sentences', "Data to merge should be in split_sentences data tier."
+            assert data_item.data_tier in ['split_sentences', 'questions'], "Data to merge should be in split_sentences or questions data tier."
             df = pd.concat([df, data_item.data], ignore_index=True)
 
-        merged_data = SAGEDData.create_data(domain, concept, 'split_sentences', df)
+        # Determine the data tier based on the first item in merge_list
+        data_tier = merge_list[0].data_tier
+        merged_data = SAGEDData.create_data(domain, concept, data_tier, df)
 
         if saged_format:
             return merged_data

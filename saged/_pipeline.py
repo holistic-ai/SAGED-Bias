@@ -86,10 +86,10 @@ class Pipeline:
                                                   'saving_location': None,
                                               }
         cls._branching_default_config = {
-            'branching_pairs': 'all',
+            'branching_pairs': 'not_all',
             'direction': 'both',
             'source_restriction': None,
-            'replacement_descriptor_require': True,
+            'replacement_descriptor_require': False,
             'descriptor_threshold': 'Auto',
             'descriptor_embedding_model': 'paraphrase-Mpnet-base-v2',
             'descriptor_distance': 'cosine',

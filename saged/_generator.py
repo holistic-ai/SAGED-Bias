@@ -17,7 +17,7 @@ class ResponseGenerator:
                  generation_name='LLM',
                  remove_prompt = False,
                  add_prompt_to_generation = False,
-                 max_generation_length=1000):
+                 max_generation_length=2000):
 
         check_generation_function(generation_function)
         generation = generation_function

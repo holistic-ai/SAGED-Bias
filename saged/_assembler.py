@@ -7,13 +7,22 @@ from tqdm import tqdm
 from ._saged_data import SAGEDData as _saged_data
 import pandas as pd
 from nltk import download
+import nltk
 import spacy
 from ._utility import clean_sentences_and_join as clean_sentences_and_join
 from ._utility import _update_configuration
 from ._utility import ignore_future_warnings
 
-download('punkt')
-download('stopwords')
+# Only download NLTK resources if they don't exist
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    download('punkt')
+
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    download('stopwords')
 
 class PromptAssembler:
     def __init__(self, scraped_sentence_saged_data):
@@ -277,10 +286,10 @@ class PromptAssembler:
             'generation_function': None,
         }
         default_branching_config = {
-            'branching_pairs': 'all',
-            'direction': 'both',
+            'branching_pairs': 'not-all',
+            'direction': 'not-both',
             'source_restriction': None,
-            'replacement_descriptor_require': True,
+            'replacement_descriptor_require': False,
             'descriptor_threshold': 'Auto',
             'descriptor_embedding_model': 'paraphrase-Mpnet-base-v2',
             'descriptor_distance': 'cosine',
@@ -474,6 +483,7 @@ class PromptAssembler:
         else:
             branching_pairs = [(key, sub_key) for key, sub_dict in replacement_description.items() for sub_key in
                                sub_dict.keys()]
+            print(branching_pairs)
             # Include the reverse of each pair
             if branching_config['direction'] == 'both':
                 branching_pairs = branching_pairs + [(b, a) for a, b in branching_pairs]

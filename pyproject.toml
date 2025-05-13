@@ -50,6 +50,7 @@ Source = "https://github.com/holistic-ai/SAGED-Bias"
 
 [tool.hatch.version]
 path = "saged/__init__.py"
+pattern = "__version__ = ['\"](?P<version>[^'\"]+)['\"]"
 
 [tool.hatch.envs.default]
 dependencies = [
