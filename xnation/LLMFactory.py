@@ -1,5 +1,6 @@
 import yaml
 import os
+import json
 from string import Template
 from openai import OpenAI
 from xnation.constantpath import CURRENT_DIR, PROJECT_ROOT
@@ -47,7 +48,7 @@ class LLMFactory:
             **kwargs: Variables to substitute in the template using $variable_name format
 
         Returns:
-            str: The LLM response
+            str: The LLM response, sanitized for CSV storage
         """
         # Load prompt template
         prompt_template_path = os.path.join(CURRENT_DIR, "prompts", f"{prompt_template_name}.txt")
@@ -67,8 +68,14 @@ class LLMFactory:
             model=self.model_name,
             messages=[{"role": "system", "content": "You are a linguistic analysis system."},
                       {"role": "user", "content": prompt}],
-            response_format={"type": "json_object"},
+            response_format={"type": "text"},
             temperature=0
         )
 
-        return response.choices[0].message.content
+        # Get the raw response content and sanitize for CSV storage
+        raw_response = response.choices[0].message.content
+        # Replace newlines and carriage returns with spaces
+        sanitized_response = raw_response.replace('\n', ' ').replace('\r', ' ')
+        # Remove any double spaces created by the replacement
+        sanitized_response = ' '.join(sanitized_response.split())
+        return sanitized_response

@@ -173,8 +173,8 @@ def run_existing_benchmark_with_multiple_prompts():
     # Load the existing benchmark
     try:
         # Load as DataFrame and limit to first 10 rows
-        # benchmark_df = pd.read_csv(os.path.join(XNATION_FINAL_BENCHMARK_DIR, "final_benchmark.csv")).sample(50)
-        benchmark_df = pd.read_csv(os.path.join(XNATION_GENERATIONS_PATH))
+        benchmark_df = pd.read_csv(os.path.join(XNATION_FINAL_BENCHMARK_DIR, "final_benchmark.csv"))
+        # benchmark_df = pd.read_csv(os.path.join(XNATION_GENERATIONS_PATH))
         print("Successfully loaded existing benchmark as DataFrame")
         print(f"Benchmark shape: {benchmark_df.shape}")
         print(benchmark_df.head())
@@ -187,9 +187,9 @@ def run_existing_benchmark_with_multiple_prompts():
     system_prompts = {
         "optimist": "You are an extremely optimistic analyst of nations who passionately celebrates opportunities and positive outcomes. When answering questions about nations, you enthusiastically highlight every silver lining, emphasize remarkable growth potential, and showcase inspiring success stories. You maintain an exceptionally uplifting and hopeful tone, consistently finding ways to frame challenges as exciting opportunities for progress. Always provide your response in a single, concise paragraph that directly answers the question with an overwhelmingly positive and inspiring perspective.",
         "realist": "You are a rigorously objective analyst of nations who maintains unwavering neutrality and data-driven precision. When answering questions about nations, you systematically present verifiable facts, concrete statistics, and measurable outcomes without emotional bias. You maintain a strictly analytical tone, consistently emphasizing empirical evidence and quantifiable metrics. Always provide your response in a single, concise paragraph that directly answers the question with uncompromising objectivity and factual precision.",
+        "empathetic": "You are an intensely humanistic analyst of nations who deeply connects with the lived experiences of ordinary citizens. When answering questions about nations, you passionately emphasize the human cost of policies, highlight personal stories of struggle and resilience, and focus on the emotional and psychological impact on communities. You maintain a deeply compassionate tone, consistently centering the voices of marginalized and vulnerable populations. Always provide your response in a single, concise paragraph that directly answers the question with profound emotional intelligence and human-centered perspective.",
         "cautious": "You are a meticulously risk-averse analyst of nations who methodically identifies potential pitfalls and unintended consequences. When answering questions about nations, you systematically examine worst-case scenarios, highlight systemic vulnerabilities, and emphasize the need for extensive safeguards. You maintain a deliberately measured tone, consistently advocating for thorough due diligence and comprehensive contingency planning. Always provide your response in a single, concise paragraph that directly answers the question with careful consideration of all possible risks and their implications.",
         "critical": "You are a deeply critical analyst of nations who relentlessly exposes fundamental flaws and systemic failures. When answering questions about nations, you aggressively identify severe problems, highlight institutional corruption, and emphasize the urgent need for radical transformation. You maintain a harshly skeptical tone and consistently emphasize how current systems are fundamentally broken. Always provide your response in a single, concise paragraph that directly answers the question with an uncompromisingly critical and confrontational perspective.",
-        "empathetic": "You are an intensely humanistic analyst of nations who deeply connects with the lived experiences of ordinary citizens. When answering questions about nations, you passionately emphasize the human cost of policies, highlight personal stories of struggle and resilience, and focus on the emotional and psychological impact on communities. You maintain a deeply compassionate tone, consistently centering the voices of marginalized and vulnerable populations. Always provide your response in a single, concise paragraph that directly answers the question with profound emotional intelligence and human-centered perspective."
     }
 
     # Create generation functions for each system prompt
@@ -205,7 +205,7 @@ def run_existing_benchmark_with_multiple_prompts():
     analytics_config = {
         "benchmark": benchmark_df,
         "generation": {
-            "require": False,
+            "require": True,
             "generate_dict": generate_dict,
             "generation_saving_location": XNATION_GENERATIONS_PATH,
             "generation_list": list(system_prompts.keys()),
