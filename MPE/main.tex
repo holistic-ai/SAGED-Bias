@@ -1,0 +1,118 @@
+%%%%%%%% ICML 2025 SUBMISSION %%%%%%%%%%%%%%%%%
+
+\documentclass{article}
+
+% Recommended packages for figures and better typesetting:
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{subfigure}
+\usepackage{booktabs} % for professional tables
+\usepackage{hyperref}
+\usepackage{listings}  % For code listings
+\usepackage{color}     % For colored text in listings
+\usepackage{adjustbox} % For resizing tables to fit column width
+
+% Configure the listings package for source code
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  commentstyle=\color{gray},
+  keywordstyle=\color{blue},
+  stringstyle=\color{purple},
+  numberstyle=\tiny\color{gray},
+  frame=single,
+  rulecolor=\color{black},
+  backgroundcolor=\color{white},
+  tabsize=2,
+  captionpos=b
+}
+
+% Attempt to make hyperref and algorithmic work together better:
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+% Use the following line for the initial blind version submitted for review:
+\usepackage[accepted]{icml2025}
+
+\makeatletter
+\def\Notice@String{Preliminary work. Under review by the International Conference
+on Machine Learning (ICML). Do not distribute.}
+\makeatother
+
+% For theorems and such
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+\usepackage[capitalize,noabbrev]{cleveref}
+
+% For drawing diagrams
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows, positioning, fit, backgrounds, matrix}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% THEOREMS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% The \icmltitle you define below is probably too long as a header.
+% Therefore, a short form for the running title is supplied here:
+\icmltitlerunning{MPE: Training-Free Multi-Perspective Ensemble}
+
+\begin{document}
+
+\twocolumn[
+\icmltitle{MPE: Debiasing and Aligning Language Models via Training-Free Multi-Perspective Ensemble}
+
+% It is OKAY to include author information, even for blind
+% submissions: the style file will automatically remove it for you
+% unless you've provided the [accepted] option to the icml2025 package.
+\icmlsetsymbol{equal}{*}
+
+\begin{icmlauthorlist}
+\icmlauthor{Your Name}{equal,aff1}
+\icmlauthor{Co-Author}{equal,aff2}
+\end{icmlauthorlist}
+
+\icmlaffiliation{aff1}{Your Institution}
+\icmlaffiliation{aff2}{Co-Author's Institution}
+
+\icmlcorrespondingauthor{Your Name}{your.email@institution.edu}
+
+\begin{abstract}
+This paper introduces MPE (Multi-Perspective Ensemble), a novel training-free approach for debiasing and aligning language models. MPE leverages multiple perspectives through a sophisticated ensemble mechanism that combines different viewpoints while maintaining model coherence. Our method demonstrates significant improvements in reducing bias while preserving model performance across various benchmarks.
+\end{abstract}
+
+% You may provide any keywords that you find helpful for describing your paper
+\icmlkeywords{language models, bias mitigation, ensemble methods, multi-perspective learning, debiasing, model alignment}
+
+\vskip 0.3in
+]
+
+% this must go after the closing bracket ] following \twocolumn[ ...
+
+% This command actually creates the footnote in the first column
+% listing the affiliations and the copyright notice.
+\printAffiliationsAndNotice{\icmlEqualContribution} % use the standard text.
+
+% Include each section
+\input{sections/introduction}
+\input{sections/related_work}
+\input{sections/methodology}
+\input{sections/experiments}
+\input{sections/results}
+\input{sections/discussion}
+\input{sections/conclusion}
+
+\bibliography{references}
+\bibliographystyle{icml2025}
+
+\end{document} 

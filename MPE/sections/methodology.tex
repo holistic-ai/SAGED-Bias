@@ -1,0 +1,42 @@
+\subsection{Multi-Perspective Framework}
+Our MPE framework consists of two main components: the Mitigator and the ResponseGenerator. The Mitigator analyzes and optimizes perspective weights, while the ResponseGenerator applies these weights to generate debiased responses.
+
+\subsection{Distribution-Based Mitigation}
+The Mitigator employs three distribution-based metrics to measure and reduce bias:
+
+\begin{itemize}
+    \item \textbf{Wasserstein Distance}: Measures the minimum cost of transforming one distribution into another
+    \item \textbf{KL Divergence}: Quantifies the difference between probability distributions
+    \item \textbf{Total Variation Distance}: Measures the maximum difference between probability distributions
+\end{itemize}
+
+\subsection{Bayesian Model Averaging}
+We implement Bayesian Model Averaging (BMA) to combine different perspectives:
+
+\begin{equation}
+    P(y|x) = \sum_{i=1}^{n} w_i P_i(y|x)
+\end{equation}
+
+where $w_i$ are the optimized weights for each perspective $i$.
+
+\subsection{Ensemble Generation}
+The ResponseGenerator implements two approaches:
+
+\begin{enumerate}
+    \item \textbf{Routed Generation}: Selects a single perspective based on optimized weights
+    \item \textbf{Ensemble Generation}: Combines multiple perspectives into a coherent response
+\end{enumerate}
+
+\subsection{Optimization Process}
+The weight optimization process is formulated as:
+
+\begin{equation}
+    \min_w \sum_{i=1}^{n} w_i d(P_i, P_{target}) + \alpha \|w\|_2^2 + \beta \|w\|_1
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $d$ is the chosen distribution metric
+    \item $\alpha$ is the L2 regularization strength
+    \item $\beta$ is the sparsity penalty strength
+\end{itemize} 

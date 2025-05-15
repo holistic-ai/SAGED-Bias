@@ -78,4 +78,6 @@ class LLMFactory:
         sanitized_response = raw_response.replace('\n', ' ').replace('\r', ' ')
         # Remove any double spaces created by the replacement
         sanitized_response = ' '.join(sanitized_response.split())
+        # Handle quotes and commas to avoid CSV parsing issues
+        sanitized_response = sanitized_response.replace('"', "'").replace('",', ',').replace(',"', ',')
         return sanitized_response
