@@ -183,15 +183,15 @@ def generate_bias_report(concept_metrics: Dict, domain_metrics: Dict, output_dir
     
     # 1. Save metrics as JSON
     metrics_file = os.path.join(output_dir, f'bias_metrics_{timestamp}.json')
-    with open(metrics_file, 'w') as f:
+    with open(metrics_file, 'w', encoding='utf-8') as f:
         json.dump({
             'concept_metrics': concept_metrics,
             'domain_metrics': domain_metrics
-        }, f, indent=4)
+        }, f, indent=4, ensure_ascii=False)
     
     # 2. Generate and save summary report
     summary_file = os.path.join(output_dir, f'bias_report_{timestamp}.txt')
-    with open(summary_file, 'w') as f:
+    with open(summary_file, 'w', encoding='utf-8') as f:
         f.write("Bias Analysis Report\n")
         f.write("=" * 50 + "\n\n")
         f.write(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")

@@ -13,7 +13,9 @@ except ImportError:
     from _plotter import Plotter
 
 class Mitigator:
-    def __init__(self, df: pd.DataFrame, system_prompts: Dict[str, str], output_dir: str = 'data/xntion/mitigator', feature: str = 'sentiment'):
+    def __init__(self, df: pd.DataFrame, system_prompts: Dict[str, str], output_dir: str = 'data/xntion/mitigator', 
+                 feature: str = 'sentiment', baseline_generation: str = 'baseline', 
+                 component_generations: List[str] = None):
         """
         Initialize the Mitigator with a DataFrame and system prompts
         
@@ -22,12 +24,32 @@ class Mitigator:
             system_prompts (Dict[str, str]): Dictionary mapping perspective names to their system prompts
             output_dir (str): Directory to save output files (default: 'data/xntion/mitigator')
             feature (str): The feature being analyzed (default: 'sentiment')
+            baseline_generation (str): Name of the baseline generation to use as target (default: 'baseline')
+            component_generations (List[str]): List of generation names to use as components. 
+                                             If None, uses all generations except baseline.
         """
         self.df = df
         self.system_prompts = system_prompts
         self.feature = feature
-        self.generations = [col for col in self.df.columns if col.endswith('_sentiment_score') 
-                          and not col.startswith('baseline')]
+        self.baseline_generation = baseline_generation
+        
+        # Get all possible generations
+        all_generations = [col.replace('_sentiment_score', '') for col in self.df.columns 
+                          if col.endswith('_sentiment_score') and not col.startswith(self.baseline_generation)]
+        
+        # Set component generations
+        if component_generations is None:
+            self.component_generations = all_generations
+        else:
+            # Validate that all specified components exist
+            invalid_components = [gen for gen in component_generations if gen not in all_generations]
+            if invalid_components:
+                raise ValueError(f"Invalid component generations: {invalid_components}. "
+                               f"Available generations are: {all_generations}")
+            self.component_generations = component_generations
+            
+        # Convert component generation names to column names
+        self.generations = [f"{gen}_sentiment_score" for gen in self.component_generations]
         self.concepts = self.df['concept'].unique()
         
         # Add timestamp to output directory
@@ -63,8 +85,8 @@ class Mitigator:
             distributions[concept] = {}
             
             # Calculate baseline distribution
-            baseline_dist = self.get_distribution(concept_data['baseline_sentiment_score'])
-            distributions[concept]['baseline'] = baseline_dist
+            baseline_dist = self.get_distribution(concept_data[f'{self.baseline_generation}_sentiment_score'])
+            distributions[concept][self.baseline_generation] = baseline_dist
             
             # Calculate distributions for each generation
             for gen in self.generations:
@@ -153,7 +175,7 @@ class Mitigator:
             
         # If prior parameters not provided, use baseline statistics
         if prior_mean is None or prior_variance is None:
-            baseline_dist = self.df['baseline_sentiment_score']
+            baseline_dist = self.df[f'{self.baseline_generation}_sentiment_score']
             if prior_mean is None:
                 prior_mean = baseline_dist.mean()
             if prior_variance is None:
@@ -446,7 +468,7 @@ class Mitigator:
         """
         # If prior parameters not provided, use baseline statistics
         if prior_mean is None or prior_variance is None:
-            baseline_dist = self.df['baseline_sentiment_score']
+            baseline_dist = self.df[f'{self.baseline_generation}_sentiment_score']
             if prior_mean is None:
                 prior_mean = baseline_mean = baseline_dist.mean()
             if prior_variance is None:
@@ -527,7 +549,7 @@ class Mitigator:
         formatted_weights = {}
         
         for concept in self.concepts:
-            target_dist = distributions[concept]['baseline'][0]
+            target_dist = distributions[concept][self.baseline_generation][0]
             component_dists = [distributions[concept][gen][0] for gen in self.generations]
             
             weights = self.optimize_weights(
@@ -557,6 +579,8 @@ class Mitigator:
             "timestamp": timestamp,
             "mitigation_type": mitigation_type,
             "feature": self.feature,
+            "baseline_generation": self.baseline_generation,
+            "component_generations": self.component_generations,
             "regularization": {
                 "alpha": alpha,
                 "beta": beta
@@ -570,11 +594,14 @@ class Mitigator:
             }
         }
         
+        # Debug print
+        print("Structured output:", json.dumps(structured_output, indent=2))
+        
         output_filename = f'optimized_weights_{mitigation_type}_a{alpha}_b{beta}_{timestamp}.json'
         with open(os.path.join(self.output_dir, output_filename), 'w') as f:
             json.dump(structured_output, f, indent=4)
         
-        return formatted_weights
+        return structured_output  # Return the full structured output instead of just formatted_weights
 
 def main():
     # Define different system prompts to test
@@ -589,7 +616,19 @@ def main():
 
     output_dir = 'data/xntion/mitigator'
     df = pd.read_csv('data/xntion/extractions.csv')
-    mitigator = Mitigator(df, system_prompts, output_dir=output_dir, feature=feature)
+    
+    # Example of using custom baseline and component generations
+    baseline_generation = 'realist'  # You can change this to any generation name
+    component_generations = ['optimist', 'empathetic', 'critical']  # Specify which components to use
+    
+    mitigator = Mitigator(
+        df, 
+        system_prompts, 
+        output_dir=output_dir, 
+        feature=feature, 
+        baseline_generation=baseline_generation,
+        component_generations=component_generations
+    )
     
     # Example of using different mitigation types with custom regularization parameters
     mitigation_types = [
@@ -611,6 +650,8 @@ def main():
     
     with open(log_file, 'w') as f:
         f.write(f"Mitigation Run Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"Baseline Generation: {baseline_generation}\n")
+        f.write(f"Component Generations: {', '.join(component_generations)}\n")
         f.write("=" * 80 + "\n\n")
         
         for mit_type in mitigation_types:
@@ -646,7 +687,8 @@ def main():
     
     print(f"\nResults saved in: {mitigator.output_dir}")
     print(f"Log file: {log_file}")
-    
+    print(f"Using baseline generation: {baseline_generation}")
+    print(f"Using component generations: {', '.join(component_generations)}")
 
 if __name__ == "__main__":
     main()
