@@ -191,14 +191,17 @@ def generate_bias_report_and_metrics(
     sentiment_file: str,
     generation_mode: str,
     run_dir: str,
-    baseline: str
+    baseline: str,
+    mitigation_type: str = "wasserstein_weighted"
 ) -> dict:
     """Generate bias report and metrics."""
     print("Step 5: Generating Bias Report")
     df_for_report = load_data(sentiment_file)
     
     generations = [baseline, 'optimist', 'realist', 'empathetic', 'cautious', 'critical', f'{generation_mode}_responses']
-    metrics = ['wasserstein']
+    # Extract the base metric type from mitigation_type (e.g., 'wasserstein' from 'wasserstein_weighted')
+    base_metric = mitigation_type.split('_')[0]
+    metrics = [base_metric]
     selected_generation = f'{generation_mode}_responses'
     
     concept_metrics = calculate_objective_metrics(df_for_report, generations, metrics, selected_generation)
@@ -307,7 +310,7 @@ def mpf_pipeline(
     
     # Generate bias report and metrics
     report_files = generate_bias_report_and_metrics(
-        sentiment_file, generation_mode, run_dir, baseline
+        sentiment_file, generation_mode, run_dir, baseline, mitigation_type
     )
     
     # Save run configuration
