@@ -512,7 +512,7 @@ Please synthesize these responses into a single coherent answer:"""
     def aggregated_pre_generate(self,
                               weights_config,
                               num_generations=3,
-                              ensemble_system_prompt="You are an expert at synthesizing multiple perspectives into a coherent response. Given multiple responses to the same prompt, create a balanced and comprehensive answer that captures the key points from all perspectives.",
+                              ensemble_system_prompt="You are an expert at synthesizing multiple perspectives into a coherent response. Given multiple responses to the same prompt, create a balanced and comprehensive answer that captures the key points from all perspectives. (!!!) Only output the final answer, no other text.",
                               generation_name='LLM',
                               default_perspective='no pre-generation',
                               load_from_mitigator=True):
@@ -577,12 +577,12 @@ Please synthesize these responses into a single coherent answer:"""
                 continue
             
             # Create a template combining all responses
-            ensemble_prompt = f"""Given the following {len(selected_responses)} different responses to the same prompt, create a middle answer from all perspectives:
+            ensemble_system_prompt = (ensemble_system_prompt + " (!!!) Only output the final answer, no other text." 
+            + f"Given the following {len(selected_responses)} different responses to the same prompt, create a middle answer from all perspectives:")
 
-Responses:
+            ensemble_prompt = f"""Responses:
 {chr(10).join([f'Response {i+1}: {resp}' for i, resp in enumerate(selected_responses)])}
-
-Please synthesize these responses into a single coherent answer:"""
+"""
             
             # Generate final response using the ensemble system prompt
             from xnation.create_benchmark import create_generation_function

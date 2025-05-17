@@ -1,0 +1,189 @@
+\begin{thebibliography}{31}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Abadi et~al.(2016)Abadi, Barham, Chen, Chen, Davis, Dean, Devin, Ghemawat, Irving, Isard, Kudlur, Levenberg, Monga, Moore, Murray, Steiner, Tucker, Vasudevan, Warden, Wicke, Yu, and Zheng]{AbadiBCCDDDGIIK16}
+Abadi, M., Barham, P., Chen, J., Chen, Z., Davis, A., Dean, J., Devin, M., Ghemawat, S., Irving, G., Isard, M., Kudlur, M., Levenberg, J., Monga, R., Moore, S., Murray, D.~G., Steiner, B., Tucker, P.~A., Vasudevan, V., Warden, P., Wicke, M., Yu, Y., and Zheng, X.
+\newblock Tensorflow: A system for large-scale machine learning.
+\newblock In \emph{12th USENIX Symposium on Operating Systems Design and Implementation (OSDI)}, pp.\  265--283, 2016.
+\newblock URL \url{https://www.usenix.org/conference/osdi16/technical-sessions/presentation/abadi}.
+
+\bibitem[Alevizos et~al.(2024)Alevizos, Papakostas, Simasiku, Malliarou, Messinis, Edralin, Xu, and Yue]{Alevizos_2024}
+Alevizos, V., Papakostas, G.~A., Simasiku, A., Malliarou, D., Messinis, A., Edralin, S., Xu, C., and Yue, Z.
+\newblock Integrating artificial open generative artificial intelligence into software supply chain security.
+\newblock In \emph{2024 5th International Conference on Data Analytics for Business and Industry (ICDABI)}, pp.\  200–206. IEEE, October 2024.
+\newblock \doi{10.1109/icdabi63787.2024.10800301}.
+\newblock URL \url{http://dx.doi.org/10.1109/ICDABI63787.2024.10800301}.
+
+\bibitem[Bradbury et~al.(2025)Bradbury, Frostig, Hawkins, Johnson, Leary, Maclaurin, Necula, Paszke, VanderPlas, Wanderman-Milne, et~al.]{bradbury2018jax}
+Bradbury, J., Frostig, R., Hawkins, P., Johnson, M.~J., Leary, C., Maclaurin, D., Necula, G., Paszke, A., VanderPlas, J., Wanderman-Milne, S., et~al.
+\newblock Jax: composable transformations of python+ numpy programs.
+\newblock \url{https://github.com/google/jax}, 2025.
+\newblock Accessed: 2025-05-12.
+
+\bibitem[Browserbase(2025)]{Stagehand2025}
+Browserbase.
+\newblock Stagehand: The production-ready framework for ai browser automations.
+\newblock \url{https://github.com/browserbase/stagehand}, 2025.
+\newblock Accessed: 2025-05-12.
+
+\bibitem[Chen et~al.(2023)Chen, Liang, Shen, Jiang, and Li]{Chen2023}
+Chen, J., Liang, Y., Shen, Q., Jiang, J., and Li, S.
+\newblock {Toward Understanding Deep Learning Framework Bugs}.
+\newblock \emph{ACM Transactions on Software Engineering and Methodology}, 32\penalty0 (6):\penalty0 135:1--135:31, 2023.
+
+\bibitem[{Composio}(2025)]{Composio2025}
+{Composio}.
+\newblock {Composio}: Production-ready toolset for ai agents.
+\newblock \url{https://github.com/ComposioHQ/composio}, 2025.
+\newblock Accessed: 2025-05-12.
+
+\bibitem[{CrewAI}(2025)]{CrewAI2025}
+{CrewAI}.
+\newblock {CrewAI}: Fast and flexible multi-agent automation framework.
+\newblock \url{https://github.com/crewAIInc/crewAI}, 2025.
+\newblock Accessed: 2025-05-12.
+
+\bibitem[{Google}(2025)]{ADK2025}
+{Google}.
+\newblock {Agent Development Kit}: An open-source, code-first python toolkit for building, evaluating, and deploying sophisticated ai agents with flexibility and control.
+\newblock \url{https://github.com/google/adk-python}, 2025.
+\newblock Accessed: 2025-05-12.
+
+\bibitem[{Hugging Face}(2025)]{TextGenInference2025}
+{Hugging Face}.
+\newblock {Text Generation Inference}: Large language model text generation inference.
+\newblock \url{https://github.com/huggingface/text-generation-inference}, 2025.
+\newblock Accessed: 2025-05-12.
+
+\bibitem[{Huntr}(2024)]{Huntr2024}
+{Huntr}.
+\newblock Huntr: The world’s first bug bounty platform for ai/ml.
+\newblock \url{https://huntr.dev}, 2024.
+\newblock Accessed: 2025-05-12.
+
+\bibitem[Kwon et~al.(2023)Kwon, Li, Zhuang, Sheng, Zheng, Yu, Gonzalez, Zhang, and Stoica]{kwon2023efficient}
+Kwon, W., Li, Z., Zhuang, S., Sheng, Y., Zheng, L., Yu, C.~H., Gonzalez, J.~E., Zhang, H., and Stoica, I.
+\newblock Efficient memory management for large language model serving with pagedattention.
+\newblock \emph{arXiv preprint arXiv:2309.06180}, 2023.
+\newblock URL \url{https://arxiv.org/abs/2309.06180}.
+
+\bibitem[Ladisa et~al.(2023)Ladisa, Plate, Martinez, and Barais]{Ladisa2023}
+Ladisa, P., Plate, H., Martinez, M., and Barais, O.
+\newblock {SoK: Taxonomy of Attacks on Open-Source Software Supply Chains}.
+\newblock In \emph{Proceedings of the 2023 IEEE Symposium on Security and Privacy (SP)}, pp.\  1509--1526, 2023.
+
+\bibitem[{LangChain AI}(2025{\natexlab{a}})]{LangChain2025}
+{LangChain AI}.
+\newblock {LangChain}: Large language model application framework.
+\newblock \url{https://github.com/langchain-ai/langchain}, 2025{\natexlab{a}}.
+\newblock Accessed: 2025-05-12.
+
+\bibitem[{LangChain AI}(2025{\natexlab{b}})]{LangGraph2025}
+{LangChain AI}.
+\newblock {LangGraph}: An open-source ai agent orchestration framework.
+\newblock \url{https://docs.langchain.com/docs/langgraph}, 2025{\natexlab{b}}.
+\newblock Accessed: 2025-05-12.
+
+\bibitem[Liu(2022)]{Liu_LlamaIndex_2022}
+Liu, J.
+\newblock {LlamaIndex}, 11 2022.
+\newblock URL \url{https://github.com/jerryjliu/llama_index}.
+
+\bibitem[McGregor(2021)]{McGregor2021}
+McGregor, S.
+\newblock {Preventing Repeated Real World AI Failures by Cataloging Incidents: The AI Incident Database}.
+\newblock In \emph{Proceedings of the Thirty-Third AAAI Conference on Innovative Applications of Artificial Intelligence (IAAI)}, 2021.
+
+\bibitem[Müller \& Žunič(2024)Müller and Žunič]{browser_use2024}
+Müller, M. and Žunič, G.
+\newblock Browser use: Enable ai to control your browser, 2024.
+\newblock URL \url{https://github.com/browser-use/browser-use}.
+
+\bibitem[{NVIDIA}(2025)]{TensorRT2025}
+{NVIDIA}.
+\newblock {TensorRT}: High-performance deep learning inference on nvidia gpus.
+\newblock \url{https://github.com/NVIDIA/TensorRT}, 2025.
+\newblock Accessed: 2025-05-12.
+
+\bibitem[Ohm et~al.(2020)Ohm, Plate, Sykosch, and Meier]{Ohm2020}
+Ohm, M., Plate, H., Sykosch, A., and Meier, M.
+\newblock {Backstabber's Knife Collection: A Review of Open Source Software Supply Chain Attacks}.
+\newblock In \emph{Proceedings of the 17th International Conference on Detection of Intrusions and Malware, and Vulnerability Assessment (DIMVA)}, pp.\  23--43, 2020.
+
+\bibitem[{ONNX}(2025)]{ONNX2025}
+{ONNX}.
+\newblock {ONNX}: Open neural network exchange.
+\newblock \url{https://github.com/onnx/onnx}, 2025.
+\newblock Accessed: 2025-05-12.
+
+\bibitem[Paszke et~al.(2019)Paszke, Gross, Massa, Lerer, Bradbury, Chanan, Killeen, Lin, Gimelshein, Antiga, Desmaison, Kopf, Yang, DeVito, Raison, Tejani, Chilamkurthy, Steiner, Fang, Bai, and Chintala]{PaszkeGMLBCKLGA19}
+Paszke, A., Gross, S., Massa, F., Lerer, A., Bradbury, J., Chanan, G., Killeen, T., Lin, Z., Gimelshein, N., Antiga, L., Desmaison, A., Kopf, A., Yang, E., DeVito, Z., Raison, M., Tejani, A., Chilamkurthy, S., Steiner, B., Fang, L., Bai, J., and Chintala, S.
+\newblock Pytorch: An imperative style, high-performance deep learning library.
+\newblock In Wallach, H., Larochelle, H., Beygelzimer, A., d\textquotesingle Alch\'{e}-Buc, F., Fox, E., and Garnett, R. (eds.), \emph{Advances in Neural Information Processing Systems}, volume~32. Curran Associates, Inc., 2019.
+\newblock URL \url{https://proceedings.neurips.cc/paper_files/paper/2019/file/bdbca288fee7f92f2bfa9f7012727740-Paper.pdf}.
+
+\bibitem[{Pydantic}(2025)]{PydanticAI2025}
+{Pydantic}.
+\newblock {Pydantic AI}: shim to use pydantic with llms.
+\newblock \url{https://github.com/pydantic/pydantic-ai}, 2025.
+\newblock Accessed: 2025-05-12.
+
+\bibitem[Raji et~al.(2020)Raji, Smart, White, Mitchell, Gebru, et~al.]{Raji2020}
+Raji, I.~D., Smart, A., White, R.~N., Mitchell, M., Gebru, T., et~al.
+\newblock {Closing the AI Accountability Gap: Defining an End-to-End Framework for Internal Algorithmic Auditing}.
+\newblock In \emph{Proceedings of the 2020 Conference on Fairness, Accountability, and Transparency (FAT* 2020)}, pp.\  20--31, 2020.
+
+\bibitem[Reuel et~al.(2025)Reuel, Bucknall, Casper, Fist, Soder, Aarne, Hammond, Ibrahim, Chan, Wills, Anderljung, Garfinkel, Heim, Trask, Mukobi, Schaeffer, Baker, Hooker, Solaiman, Luccioni, Rajkumar, Mo{\"e}s, Ladish, Bau, Bricman, Guha, Newman, Bengio, South, Pentland, Koyejo, Kochenderfer, and Trager]{reuel2025open}
+Reuel, A., Bucknall, B., Casper, S., Fist, T., Soder, L., Aarne, O., Hammond, L., Ibrahim, L., Chan, A., Wills, P., Anderljung, M., Garfinkel, B., Heim, L., Trask, A., Mukobi, G., Schaeffer, R., Baker, M., Hooker, S., Solaiman, I., Luccioni, S., Rajkumar, N., Mo{\"e}s, N., Ladish, J., Bau, D., Bricman, P., Guha, N., Newman, J., Bengio, Y., South, T., Pentland, A., Koyejo, S., Kochenderfer, M., and Trager, R.
+\newblock Open problems in technical {AI} governance.
+\newblock \emph{Transactions on Machine Learning Research}, 2025.
+\newblock ISSN 2835-8856.
+\newblock URL \url{https://openreview.net/forum?id=1nO4qFMiS0}.
+\newblock Survey Certification.
+
+\bibitem[Roucher et~al.(2025)Roucher, del Moral, Wolf, von Werra, and Kaunismäki]{smolagents}
+Roucher, A., del Moral, A.~V., Wolf, T., von Werra, L., and Kaunismäki, E.
+\newblock `smolagents`: a smol library to build great agentic systems.
+\newblock \url{https://github.com/huggingface/smolagents}, 2025.
+
+\bibitem[Wang et~al.(2025)Wang, Zhao, Liu, Zou, and Wang]{Wang2025}
+Wang, S., Zhao, Y., Liu, Z., Zou, Q., and Wang, H.
+\newblock {SoK: Understanding Vulnerabilities in the Large Language Model Supply Chain}.
+\newblock \emph{arXiv preprint arXiv:2502.12497}, 2025.
+
+\bibitem[Wolf et~al.(2020)Wolf, Debut, Sanh, Chaumond, Delangue, Moi, Cistac, Rault, Louf, Funtowicz, Davison, Shleifer, von Platen, Ma, Jernite, Plu, Xu, Le~Scao, Gugger, Drame, Lhoest, and Rush]{WolfDSCDMCRLFDS20}
+Wolf, T., Debut, L., Sanh, V., Chaumond, J., Delangue, C., Moi, A., Cistac, P., Rault, T., Louf, R., Funtowicz, M., Davison, J., Shleifer, S., von Platen, P., Ma, C., Jernite, Y., Plu, J., Xu, C., Le~Scao, T., Gugger, S., Drame, M., Lhoest, Q., and Rush, A.~M.
+\newblock Transformers: State-of-the-art natural language processing.
+\newblock In \emph{Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing: System Demonstrations}, pp.\  38--45. Association for Computational Linguistics, 2020.
+\newblock \doi{10.18653/v1/2020.emnlp-demos.6}.
+\newblock URL \url{https://aclanthology.org/2020.emnlp-demos.6}.
+
+\bibitem[Zahan et~al.(2023)Zahan, Kanakiya, Hambleton, Shohan, and Williams]{Zahan2023}
+Zahan, N., Kanakiya, P., Hambleton, B., Shohan, S., and Williams, L.
+\newblock Openssf scorecard: On the path toward ecosystem-wide automated security metrics.
+\newblock \emph{IEEE Security \& Privacy}, 21\penalty0 (6):\penalty0 76--88, 2023.
+\newblock \doi{10.1109/MSEC.2023.3279773}.
+
+\bibitem[Zhang \& colleagues(2024)Zhang and colleagues]{zhang2024metagpt}
+Zhang, f. n. o. f.~b. and colleagues.
+\newblock Metagpt: Meta programming sota autonomous multi-agent cooperative llm workflows.
+\newblock \emph{arXiv preprint arXiv:2404.14496}, 2024.
+\newblock URL \url{https://arxiv.org/abs/2404.14496}.
+
+\bibitem[Zheng et~al.(2023)Zheng, Yin, Xie, Sun, Huang, Yu, Cao, Kozyrakis, Stoica, Gonzalez, Barrett, and Sheng]{zheng2023sglang}
+Zheng, L., Yin, L., Xie, Z., Sun, C., Huang, J., Yu, C.~H., Cao, S., Kozyrakis, C., Stoica, I., Gonzalez, J.~E., Barrett, C., and Sheng, Y.
+\newblock Sglang: Efficient execution of structured language model programs.
+\newblock \emph{arXiv preprint arXiv:2312.07104}, 2023.
+\newblock URL \url{https://arxiv.org/abs/2312.07104}.
+
+\bibitem[Zhou et~al.(2024)Zhou, Cao, Sun, and Lo]{Zhou2024}
+Zhou, X., Cao, S., Sun, X., and Lo, D.
+\newblock {Large Language Model for Vulnerability Detection and Repair: Literature Review and the Road Ahead}.
+\newblock \emph{ACM Transactions on Software Engineering and Methodology}, 2024.
+\newblock to appear.
+
+\end{thebibliography}

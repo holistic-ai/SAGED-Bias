@@ -27,7 +27,7 @@ def load_data(file_path: str) -> pd.DataFrame:
     
     return df
 
-def calculate_objective_metrics(df: pd.DataFrame, generations: List[str], metrics: List[str] = None, selected_generation: str = 'pseudo_routed_responses') -> Dict[str, Dict[str, Dict[str, float]]]:
+def calculate_objective_metrics(df: pd.DataFrame, generations: List[str], metrics: List[str] = None, selected_generation: str = 'pseudo_routed_responses', baseline_generation: str = 'baseline') -> Dict[str, Dict[str, Dict[str, float]]]:
     """
     Calculate objective metrics for each generation compared to baseline.
     
@@ -36,12 +36,13 @@ def calculate_objective_metrics(df: pd.DataFrame, generations: List[str], metric
         generations: List of generation names to compare
         metrics: List of metrics to calculate. If None, uses all metrics.
         selected_generation: The generation to analyze in detail
+        baseline_generation: The generation to use as baseline for comparison
         
     Returns:
         Dictionary containing metrics for each concept and generation
     """
     if metrics is None:
-        metrics = ['wasserstein', 'kl', 'tv']
+        metrics = ['wasserstein', 'kl', 'tv', 'mean', 'calibration']
     
     # Initialize Mitigator
     mitigator = Mitigator(
@@ -53,15 +54,16 @@ def calculate_objective_metrics(df: pd.DataFrame, generations: List[str], metric
     
     # Calculate distributions
     distributions = mitigator.calculate_distributions()
+    calibrated_distributions = mitigator.calculate_calibrated_distributions()
     
     results = {}
     for concept in df['concept'].unique():
         concept_data = df[df['concept'] == concept]
-        target_dist = distributions[concept]['baseline'][0]  # Use baseline as target distribution
+        target_dist = distributions[concept][baseline_generation][0]
         
         concept_results = {}
         for gen in generations:
-            if gen == 'baseline':
+            if gen == baseline_generation:
                 continue
                 
             gen_dist = distributions[concept][f'{gen}_sentiment_score'][0]
@@ -80,6 +82,16 @@ def calculate_objective_metrics(df: pd.DataFrame, generations: List[str], metric
                 gen_metrics['tv'] = mitigator.objective_function_tv(
                     np.array([1.0]), target_dist, [gen_dist]
                 )
+            if 'mean' in metrics:
+                gen_metrics['mean'] = mitigator.objective_function_mean(
+                    np.array([1.0]), target_dist, [gen_dist]
+                )
+            if 'calibration' in metrics:
+                # For calibration, we use the calibrated distributions
+                gen_calibrated_dist = calibrated_distributions[concept][f'{gen}_sentiment_score'][0]
+                gen_metrics['calibration'] = mitigator.objective_function_calibration(
+                    np.array([1.0]), np.zeros(1), [gen_calibrated_dist]
+                )
             
             concept_results[gen] = gen_metrics
         
@@ -87,7 +99,7 @@ def calculate_objective_metrics(df: pd.DataFrame, generations: List[str], metric
     
     return results
 
-def calculate_domain_metrics(df: pd.DataFrame, generations: List[str], metrics: List[str] = None, selected_generation: str = 'pseudo_routed_responses') -> Dict[str, Dict[str, Dict[str, float]]]:
+def calculate_domain_metrics(df: pd.DataFrame, generations: List[str], metrics: List[str] = None, selected_generation: str = 'pseudo_routed_responses', baseline_generation: str = 'baseline') -> Dict[str, Dict[str, Dict[str, float]]]:
     """
     Calculate objective metrics at domain level.
     
@@ -96,12 +108,13 @@ def calculate_domain_metrics(df: pd.DataFrame, generations: List[str], metrics: 
         generations: List of generation names to compare
         metrics: List of metrics to calculate. If None, uses all metrics.
         selected_generation: The generation to analyze in detail
+        baseline_generation: The generation to use as baseline for comparison
         
     Returns:
         Dictionary containing metrics for each domain and generation
     """
     if metrics is None:
-        metrics = ['wasserstein', 'kl', 'tv']
+        metrics = ['wasserstein', 'kl', 'tv', 'mean', 'calibration']
     
     # Initialize Mitigator
     mitigator = Mitigator(
@@ -111,34 +124,20 @@ def calculate_domain_metrics(df: pd.DataFrame, generations: List[str], metrics: 
         feature='sentiment'
     )
     
-    # Calculate distributions
-    distributions = mitigator.calculate_distributions()
+    # Calculate domain-level distributions
+    domain_distributions = mitigator.calculate_domain_distributions()
+    domain_calibrated_distributions = mitigator.calculate_domain_calibrated_distributions()
     
     results = {}
     for domain in df['domain'].unique():
-        domain_data = df[df['domain'] == domain]
-        
-        # Aggregate distributions across all concepts in the domain
-        domain_distributions = {}
-        for gen in generations:
-            if gen == 'baseline':
-                continue
-            # Combine distributions from all concepts in the domain
-            gen_dists = [distributions[concept][f'{gen}_sentiment_score'][0] 
-                        for concept in domain_data['concept'].unique()]
-            domain_distributions[gen] = np.mean(gen_dists, axis=0)
-        
-        # Get baseline distribution for the domain
-        baseline_dists = [distributions[concept]['baseline'][0] 
-                         for concept in domain_data['concept'].unique()]
-        target_dist = np.mean(baseline_dists, axis=0)
+        target_dist = domain_distributions[domain][baseline_generation]
         
         domain_results = {}
         for gen in generations:
-            if gen == 'baseline':
+            if gen == baseline_generation:
                 continue
                 
-            gen_dist = domain_distributions[gen]
+            gen_dist = domain_distributions[domain][f'{gen}_sentiment_score']
             
             # Calculate metrics for this generation compared to baseline
             gen_metrics = {}
@@ -154,6 +153,16 @@ def calculate_domain_metrics(df: pd.DataFrame, generations: List[str], metrics: 
                 gen_metrics['tv'] = mitigator.objective_function_tv(
                     np.array([1.0]), target_dist, [gen_dist]
                 )
+            if 'mean' in metrics:
+                gen_metrics['mean'] = mitigator.objective_function_mean(
+                    np.array([1.0]), target_dist, [gen_dist]
+                )
+            if 'calibration' in metrics:
+                # For calibration, we use the domain-level calibrated distributions
+                gen_calibrated_dist = domain_calibrated_distributions[domain][f'{gen}_sentiment_score']
+                gen_metrics['calibration'] = mitigator.objective_function_calibration(
+                    np.array([1.0]), np.zeros(1), [gen_calibrated_dist]
+                )
             
             domain_results[gen] = gen_metrics
         
@@ -161,7 +170,7 @@ def calculate_domain_metrics(df: pd.DataFrame, generations: List[str], metrics: 
     
     return results
 
-def generate_bias_report(concept_metrics: Dict, domain_metrics: Dict, output_dir: str, metrics: List[str] = None, selected_generation: str = 'pseudo_routed_responses'):
+def generate_bias_report(concept_metrics: Dict, domain_metrics: Dict, output_dir: str, metrics: List[str] = None, selected_generation: str = 'pseudo_routed_responses', baseline_generation: str = 'baseline'):
     """
     Generate and save a comprehensive bias report.
     
@@ -171,9 +180,10 @@ def generate_bias_report(concept_metrics: Dict, domain_metrics: Dict, output_dir
         output_dir: Directory to save the report
         metrics: List of metrics to include in the report. If None, uses all metrics.
         selected_generation: The generation to analyze in detail
+        baseline_generation: The generation used as baseline for comparison
     """
     if metrics is None:
-        metrics = ['wasserstein', 'kl', 'tv']
+        metrics = ['wasserstein', 'kl', 'tv', 'mean', 'calibration']
     
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
@@ -186,7 +196,9 @@ def generate_bias_report(concept_metrics: Dict, domain_metrics: Dict, output_dir
     with open(metrics_file, 'w', encoding='utf-8') as f:
         json.dump({
             'concept_metrics': concept_metrics,
-            'domain_metrics': domain_metrics
+            'domain_metrics': domain_metrics,
+            'baseline_generation': baseline_generation,
+            'metrics_used': metrics
         }, f, indent=4, ensure_ascii=False)
     
     # 2. Generate and save summary report
@@ -195,6 +207,8 @@ def generate_bias_report(concept_metrics: Dict, domain_metrics: Dict, output_dir
         f.write("Bias Analysis Report\n")
         f.write("=" * 50 + "\n\n")
         f.write(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        f.write(f"Baseline Generation: {baseline_generation}\n")
+        f.write(f"Metrics Analyzed: {', '.join(metrics)}\n\n")
         
         # Calculate selected generation performance summary
         f.write(f"{selected_generation.upper()} PERFORMANCE SUMMARY\n")
@@ -343,11 +357,14 @@ def main():
     # Generations to analyze
     generations = ['baseline', 'optimist', 'realist', 'empathetic', 'cautious', 'critical', 'pseudo_routed_responses']
     
-    # Metrics to analyze (only Wasserstein in this case)
-    metrics = ['wasserstein']
+    # Metrics to analyze (including calibration)
+    metrics = ['wasserstein', 'calibration']
     
     # Selected generation to analyze in detail
     selected_generation = 'pseudo_routed_responses'
+    
+    # Baseline generation for comparison
+    baseline_generation = 'baseline'
     
     # Output directory for reports
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -358,13 +375,13 @@ def main():
         df = load_data(file_path)
         
         # Calculate metrics at concept level
-        concept_metrics = calculate_objective_metrics(df, generations, metrics, selected_generation)
+        concept_metrics = calculate_objective_metrics(df, generations, metrics, selected_generation, baseline_generation)
         
         # Calculate metrics at domain level
-        domain_metrics = calculate_domain_metrics(df, generations, metrics, selected_generation)
+        domain_metrics = calculate_domain_metrics(df, generations, metrics, selected_generation, baseline_generation)
         
         # Generate and save bias report
-        report_files = generate_bias_report(concept_metrics, domain_metrics, output_dir, metrics, selected_generation)
+        report_files = generate_bias_report(concept_metrics, domain_metrics, output_dir, metrics, selected_generation, baseline_generation)
         
         # Print results
         print("\nBias Report Generated:")

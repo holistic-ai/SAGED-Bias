@@ -1,0 +1,8 @@
+\section{Related Works}
+
+
+
+
+
+\paragraph{Deployment-Time Bias Mitigation.} In contrast, Multi-Perspective Fusion (MPF) offers a model-agnostic, zero-weight-update approach after deployment. Earlier after-deployment mitigation techniques—output filtering \cite{gehman-etal-2020-realtoxicityprompts}, rewriting (Zhao et al., 2021), and controlled decoding \cite{he-etal-2022-ctrlsum}—aim to block harmful content. More recent tools like ConceptX (2025) support interpretable editing, but focus largely on harmful content mitigation. MPF instead aligns outputs with evaluative baselines using SAGED (2025), offering both interpretability and constructive preference alignment around specific concepts.
+\paragraph{Comparison with Prompt-Based Approaches.} Architecturally, MPF relates to Chain-of-Thought \cite{wei2022chain, kojima2022large}, Self-Consistency \cite{wang2022self}, and Tree-of-Thought \cite{yao2023tree} methods, which aggregate multiple generations to refine outputs. Yet unlike truth-evaluative approaches like debate prompting \cite{madaan2023self, bai2022constitutional, khan2024debating}, MPF aligns generations to human-like distributional baselines—eschewing truth judgments for balanced, preference-driven fusion. MPF thus uniquely combines model-agnostic deployment, zero-weight-update feasibility, and distributional preference alignment—bridging the gap between interpretability and actionable bias mitigation.

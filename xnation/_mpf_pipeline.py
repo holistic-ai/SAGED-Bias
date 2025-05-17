@@ -3,7 +3,7 @@ from datetime import datetime
 import pandas as pd
 from pathlib import Path
 import json
-from typing import List
+from typing import List, Dict
 
 from xnation._mitigator import Mitigator
 from xnation._generator import ResponseGenerator
@@ -48,7 +48,8 @@ def run_mitigation(
     beta: float,
     feature: str = "sentiment",
     component_generations: List[str] = None,
-    baseline: str = "baseline"
+    baseline: str = "baseline",
+    metric_weights: Dict[str, float] = None
 ) -> tuple[Mitigator, str]:
     """Run the mitigation step and return the mitigator and weights file path."""
     print("Step 1: Running Mitigation")
@@ -62,7 +63,12 @@ def run_mitigation(
     )
     
     # Get the full structured output from mitigate
-    structured_output = mitigator.mitigate(mitigation_type=mitigation_type, alpha=alpha, beta=beta)
+    structured_output = mitigator.mitigate(
+        mitigation_type=mitigation_type, 
+        alpha=alpha, 
+        beta=beta,
+        metric_weights=metric_weights
+    )
     
     # Save the full structured output to file
     weights_file = os.path.join(run_dir, f"optimized_weights_{mitigation_type}_a{alpha}_b{beta}.json")
@@ -176,15 +182,32 @@ def plot_results(
     plots_dir = os.path.join(run_dir, "plots")
     os.makedirs(plots_dir, exist_ok=True)
     
+    # Plot concept results
+    concept_plots_dir = os.path.join(plots_dir, "concept")
+    os.makedirs(concept_plots_dir, exist_ok=True)
     plot_benchmark_results(
         csv_path=sentiment_file,
         sentiment_types=[baseline, f'{generation_mode}_responses', 'optimist', 'realist', 'empathetic', 'cautious', 'critical'],
-        group_by=['concept', 'domain'],
+        group_by=['concept'],
         plot_types=['jitter', 'histogram'],
         figsize=(15, 6),
-        output_dir=plots_dir,
+        output_dir=concept_plots_dir,
         highlight_types=[baseline, f'{generation_mode}_responses']
     )
+    
+    # Plot domain results
+    domain_plots_dir = os.path.join(plots_dir, "domain")
+    os.makedirs(domain_plots_dir, exist_ok=True)
+    plot_benchmark_results(
+        csv_path=sentiment_file,
+        sentiment_types=[baseline, f'{generation_mode}_responses', 'optimist', 'realist', 'empathetic', 'cautious', 'critical'],
+        group_by=['domain'],
+        plot_types=['jitter', 'histogram'],
+        figsize=(15, 6),
+        output_dir=domain_plots_dir,
+        highlight_types=[baseline, f'{generation_mode}_responses']
+    )
+    
     return plots_dir
 
 def generate_bias_report_and_metrics(
@@ -192,20 +215,33 @@ def generate_bias_report_and_metrics(
     generation_mode: str,
     run_dir: str,
     baseline: str,
-    mitigation_type: str = "wasserstein_weighted"
+    mitigation_type: str = "wasserstein_weighted",
+    report_metric: List[str] = None
 ) -> dict:
-    """Generate bias report and metrics."""
+    """Generate bias report and metrics.
+    
+    Args:
+        sentiment_file: Path to the sentiment analysis results
+        generation_mode: Mode of generation used
+        run_dir: Directory to save reports
+        baseline: Name of the baseline generation
+        mitigation_type: Type of mitigation used
+        report_metric: List of metrics to use in the report. If None, uses the base metric from mitigation_type.
+    """
     print("Step 5: Generating Bias Report")
     df_for_report = load_data(sentiment_file)
     
     generations = [baseline, 'optimist', 'realist', 'empathetic', 'cautious', 'critical', f'{generation_mode}_responses']
     # Extract the base metric type from mitigation_type (e.g., 'wasserstein' from 'wasserstein_weighted')
     base_metric = mitigation_type.split('_')[0]
-    metrics = [base_metric]
+    
+    # Use specified metrics if provided, otherwise use the base metric from mitigation_type
+    metrics = report_metric if report_metric else [base_metric]
+    
     selected_generation = f'{generation_mode}_responses'
     
-    concept_metrics = calculate_objective_metrics(df_for_report, generations, metrics, selected_generation)
-    domain_metrics = calculate_domain_metrics(df_for_report, generations, metrics, selected_generation)
+    concept_metrics = calculate_objective_metrics(df_for_report, generations, metrics, selected_generation, baseline_generation=baseline)
+    domain_metrics = calculate_domain_metrics(df_for_report, generations, metrics, selected_generation, baseline_generation=baseline)
     
     reports_dir = os.path.join(run_dir, "reports")
     os.makedirs(reports_dir, exist_ok=True)
@@ -262,7 +298,9 @@ def mpf_pipeline(
     baseline: str = "baseline",
     feature: str = "sentiment",
     component_generations: List[str] = None,
-    system_promptable_generation_function = None  # Renamed to be explicit
+    system_promptable_generation_function = None,  # Renamed to be explicit
+    report_metric: List[str] = None,  # Changed to List[str]
+    metric_weights: Dict[str, float] = None  # Added metric_weights parameter
 ):
     """
     Run the complete pipeline from benchmark to final report.
@@ -283,6 +321,8 @@ def mpf_pipeline(
         component_generations: List of generation names to use as components. If None, uses all generations except baseline.
         system_promptable_generation_function: Function that can generate responses with system prompts.
             Required for 'sampled' and 'aggregated' modes. Must accept (prompt, system_prompt) as arguments.
+        report_metric: List of metrics to use in the report. If None, uses the base metric from mitigation_type.
+        metric_weights: Dictionary mapping metric names to their weights for mixed objective
     """
     # Create run directory
     run_dir, timestamp = create_run_directory(output_path)
@@ -290,7 +330,8 @@ def mpf_pipeline(
     # Run mitigation
     _, weights_file = run_mitigation(
         benchmark_df, system_prompts, run_dir,
-        mitigation_type, alpha, beta, feature, component_generations, baseline
+        mitigation_type, alpha, beta, feature, component_generations, baseline,
+        metric_weights=metric_weights  # Pass metric_weights to run_mitigation
     )
     
     # Generate responses
@@ -310,7 +351,7 @@ def mpf_pipeline(
     
     # Generate bias report and metrics
     report_files = generate_bias_report_and_metrics(
-        sentiment_file, generation_mode, run_dir, baseline, mitigation_type
+        sentiment_file, generation_mode, run_dir, baseline, mitigation_type, report_metric
     )
     
     # Save run configuration
@@ -380,5 +421,7 @@ if __name__ == "__main__":
         baseline="realist",  # Using realist as baseline
         feature="sentiment",  # Feature to analyze
         component_generations=['optimist', 'empathetic', 'critical'],  # Selected components for mitigation
-        system_promptable_generation_function=system_promptable_generation_function  # Pass the system-promptable function
+        system_promptable_generation_function=system_promptable_generation_function,  # Pass the system-promptable function
+        report_metric=None,  # No specific report metric
+        metric_weights=None  # No specific metric weights
     ) 

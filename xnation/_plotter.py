@@ -201,7 +201,7 @@ def plot_benchmark_results(
                 size = 8
             handles.append(Line2D([0], [0], marker=marker, color='w', label=sent_type.capitalize(), markerfacecolor=color_palette[sent_type.capitalize()], markersize=size))
             labels.append(sent_type.capitalize())
-        ax1.legend(handles, labels, bbox_to_anchor=(1.05, 1), loc='upper left')
+        ax1.legend(handles, labels, bbox_to_anchor=(1.02, 1), loc='upper left')
         plt.tight_layout()
         jitter_path = os.path.join(output_dir, 'sentiment_jitter.png')
         fig1.savefig(jitter_path, dpi=300, bbox_inches='tight')

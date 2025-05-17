@@ -65,12 +65,12 @@ on Machine Learning (ICML). Do not distribute.}
 
 % The \icmltitle you define below is probably too long as a header.
 % Therefore, a short form for the running title is supplied here:
-\icmltitlerunning{MPE: Training-Free Multi-Perspective Ensemble}
+\icmltitlerunning{MPF: Aligning via Multi-Perspective Fusion}
 
 \begin{document}
 
 \twocolumn[
-\icmltitle{MPE: Debiasing and Aligning Language Models via Training-Free Multi-Perspective Ensemble}
+\icmltitle{MPF: Aligning and Debiasing Language Models via Post-Training Multi-Perspective Fusion}
 
 % It is OKAY to include author information, even for blind
 % submissions: the style file will automatically remove it for you
@@ -86,16 +86,14 @@ on Machine Learning (ICML). Do not distribute.}
 \icmlaffiliation{aff2}{Co-Author's Institution}
 
 \icmlcorrespondingauthor{Your Name}{your.email@institution.edu}
-
-\begin{abstract}
-This paper introduces MPE (Multi-Perspective Ensemble), a novel training-free approach for debiasing and aligning language models. MPE leverages multiple perspectives through a sophisticated ensemble mechanism that combines different viewpoints while maintaining model coherence. Our method demonstrates significant improvements in reducing bias while preserving model performance across various benchmarks.
-\end{abstract}
-
+\vskip 0.3in
 % You may provide any keywords that you find helpful for describing your paper
 \icmlkeywords{language models, bias mitigation, ensemble methods, multi-perspective learning, debiasing, model alignment}
-
-\vskip 0.3in
 ]
+
+\begin{abstract}
+Multi-Perspective Fusion (MPF) is a novel post-training alignment framework for large language models (LLMs) developed in response to the growing need for easy bias mitigation. Built on top of the SAGED pipeline to interpret bias of LLM, MPF leverages multi-perspective generations to expose and align biases in LLM outputs with nuanced human-like baselines. By decomposing baseline outputs—such as sentiment distributions from HR professionals—into interpretable perspective components, MPF guides generation through sampling and balancing of responses, weighted by the probabilities obtained in the decomposition. Emperically, we evaluate MPF in the context of university and HR's standard, demonstrating its ability to align LLM sentiment distributions with expert baselines and reveal nuanced discorveries. Our results show that MPF offers a scalable and interpretable method for post-hoc alignment and bias mitigation, compatible with existing model architectures and requiring no extensive prompt engineering or fine-tuning.
+\end{abstract}
 
 % this must go after the closing bracket ] following \twocolumn[ ...
 
