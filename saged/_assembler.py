@@ -531,5 +531,3 @@ class PromptAssembler:
             self.output_df = df_result
 
         return self.scraped_sentence_to_saged_data()
-
-

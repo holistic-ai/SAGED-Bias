@@ -482,4 +482,3 @@ class SAGEDData:
             return self
 
         return self.data
-

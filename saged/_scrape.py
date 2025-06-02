@@ -675,5 +675,3 @@ class Scraper:
                         self.data[0]["keywords"][kw]["scraped_sentences"] = results
 
         return self.to_saged_data()
-
-

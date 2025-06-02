@@ -711,4 +711,3 @@ class DisparityDiagnoser:
         # Define function name for identification
         function_name = f'correlation_wrt_{baseline}_method_{method}'
         return self.customized_statistics(summary_custom_agg, function_name, custom_agg=True, **kwargs)
-
