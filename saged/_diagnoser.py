@@ -32,23 +32,34 @@ class DisparityDiagnoser:
 
         # Validate the benchmark DataFrame
         check_benchmark(benchmark)
+        
+        # Validate group_type parameter
+        if group_type not in benchmark.columns:
+            raise AssertionError(f"group_type '{group_type}' not found in benchmark columns: {list(benchmark.columns)}")
 
-        # If classification_features, generations, or target_groups are not specified, use all available in benchmark
-        self.features = [features] if isinstance(features, str) else features if features is not None else \
-            list(set([col.split('_', 1)[1] for col in benchmark.columns if f'{baseline}_' in col]))
-        self.generations = [generations] if isinstance(generations,
-                                                       str) else generations if generations is not None else \
-            [col for col in benchmark.columns if
-             col not in self.full_specification_columns and not col.startswith(baseline)]
-        self.target_groups = [target_groups] if isinstance(target_groups,
-                                                           str) else target_groups if target_groups is not None else \
-            benchmark[group_type].unique().tolist()
+        # Use proper auto-detection for features and generations if not provided
+        if features is None or generations is None:
+            auto_generations, auto_features = self._identify_and_assign_generations_features(
+                benchmark, features, generations)
+            
+            if features is None:
+                features = auto_features
+            if generations is None:
+                generations = auto_generations
 
-        self.benchmark = benchmark
+        # Store the parameters
+        self.features = [features] if isinstance(features, str) else features
+        self.generations = [generations] if isinstance(generations, str) else generations
+        self.target_groups = [target_groups] if isinstance(target_groups, str) else target_groups
         self.baseline = baseline
+        self.group_type = group_type
+        self.benchmark = benchmark.copy()
 
-        # Ensure baseline and feature columns exist in the benchmark, if applicable
+        # Validate that necessary columns exist
         self._validate_columns()
+
+        # Initialize group assignment
+        benchmark[group_type].unique().tolist()
 
         # Modify the benchmark DataFrame based on the specified group_type and target_groups
         self._modify_benchmark(group_type)
@@ -67,35 +78,55 @@ class DisparityDiagnoser:
             assigned_generations (list): A list of identified or assigned generation prefixes.
             assigned_features (list): A list of identified or assigned classification_features.
         """
-        # Step 1: Identify potential generations by grouping columns with the same prefix
-        potential_generations = defaultdict(list)
-
-        for col in benchmark.columns:
-            if '_' in col:
-                prefix = col.rsplit('_', 1)[0]  # Take everything before the last underscore as the generation
-                potential_generations[prefix].append(col)
-
-        # Step 2: Filter to keep only those prefixes that correspond to multiple columns (indicating a valid generation)
-        assigned_generations = [generations] if isinstance(generations,
-                                                           str) else generations if generations is not None else \
-            [gen for gen, cols in potential_generations.items() if len(cols) > 1]
-
-        # Step 3: Identify classification_features associated with the confirmed generations
-        assigned_features = [features] if isinstance(features, str) else features if features is not None else \
-            list(set([col.rsplit('_', 1)[1] for col in benchmark.columns if
-                      any(col.startswith(gen + '_') for gen in assigned_generations)]))
-
-        # Final validation to ensure generation-feature pairs exist in the DataFrame
-        assigned_generations = [gen for gen in assigned_generations if
-                                any(f'{gen}_{feature}' in benchmark.columns for feature in assigned_features)]
+        
+        if isinstance(features, str):
+            assigned_features = [features]
+        elif features is not None:
+            assigned_features = features
+        else:
+            # Auto-detect features from columns ending with '_score'
+            generation_feature_columns = [col for col in benchmark.columns if '_score' in col]
+            potential_features = set()
+            
+            for col in generation_feature_columns:
+                parts = col.split('_')
+                if len(parts) >= 3 and parts[-1] == 'score':  # Must end with 'score'
+                    feature = '_'.join(parts[1:])  # Everything after first underscore
+                    potential_features.add(feature)
+            
+            assigned_features = list(potential_features)
+        
+        if isinstance(generations, str):
+            assigned_generations = [generations]
+        elif generations is not None:
+            assigned_generations = generations
+        else:
+            # Auto-detect generations from columns with pattern generation_feature_score
+            generation_feature_columns = [col for col in benchmark.columns if '_score' in col]
+            potential_generations = set()
+            
+            for col in generation_feature_columns:
+                parts = col.split('_')
+                if len(parts) >= 3 and parts[-1] == 'score':  # Must end with 'score'
+                    generation = parts[0]  # First part is generation
+                    potential_generations.add(generation)
+            
+            # Validate that each generation has all detected features
+            final_generations = []
+            for gen in potential_generations:
+                has_all_features = all(f'{gen}_{feature}' in benchmark.columns for feature in assigned_features)
+                if has_all_features:
+                    final_generations.append(gen)
+            
+            assigned_generations = final_generations
 
         return assigned_generations, assigned_features
 
     def _validate_columns(self):
         """Validate that all necessary columns exist in the benchmark DataFrame."""
 
+        # Only validate generation-feature combinations, not individual generation names as columns
         for generation in self.generations:
-            assert generation in self.benchmark.columns, f"Column '{generation}' not found in benchmark"
             for feature in self.features:
                 assert f'{generation}_{feature}' in self.benchmark.columns, \
                     f"Generation feature '{generation}_{feature}' not found in benchmark"
@@ -103,7 +134,14 @@ class DisparityDiagnoser:
     def _modify_benchmark(self, group_type):
         """Modify the benchmark DataFrame by retaining relevant columns based on specified classification_features and generations."""
 
-        self.benchmark.drop(columns=['prompts', 'keyword'], inplace=True)
+        # Remove unnecessary columns only if they exist
+        columns_to_drop = []
+        for col in ['prompts', 'keyword']:
+            if col in self.benchmark.columns:
+                columns_to_drop.append(col)
+        
+        if columns_to_drop:
+            self.benchmark.drop(columns=columns_to_drop, inplace=True)
 
         assert group_type in ['domain', 'concept'], "Please use 'domain' or 'concept' as the group_type."
 
@@ -357,6 +395,8 @@ class DisparityDiagnoser:
             Returns:
             pd.DataFrame: DataFrame with columns 'disparity_metric', 'value_1', 'value_2', 'value_3'.
             """
+            from scipy.stats import zscore
+            
             disparity_dict = {'disparity_metric': []}
             disparity_dict['disparity_metric'].extend(
                 ['Max', 'Min', 'Min/Max', 'Max-Min', 'Avg', 'Std', 'Max Z-Score', 'Dixon Q'])
@@ -406,31 +446,40 @@ class DisparityDiagnoser:
             disparity_df = pd.DataFrame(disparity_dict)
             return disparity_df
 
-        value_columns = self.value_columns
+        # Check if we have any computed statistics
+        if not self.summary_df_dict:
+            # If no statistics have been computed yet, return empty DataFrame
+            empty_df = pd.DataFrame(columns=['statistics', 'disparity_metric'])
+            self.disparity_df = empty_df
+            return self
+
+        # Define value columns as generation-feature combinations
+        value_columns = [f'{gen}_{feature}' for gen in self.generations for feature in self.features
+                        if f'{gen}_{feature}' in self.benchmark.columns]
+        
         result_df = pd.DataFrame()
         for statistics, summary_df in self.summary_df_dict.items():
             disparity_df = calculate_disparities_by_column(summary_df, value_columns)
             disparity_df['statistics'] = statistics
             result_df = pd.concat([result_df.copy(), disparity_df], axis=0)
 
-        # reorder it
-        column = result_df.pop('statistics')
-        result_df.insert(0, 'statistics', column)
-        result_df = result_df.copy().reset_index(drop=True)
+        # reorder it if result_df is not empty
+        if not result_df.empty and 'statistics' in result_df.columns:
+            column = result_df.pop('statistics')
+            result_df.insert(0, 'statistics', column)
+            result_df = result_df.copy().reset_index(drop=True)
 
         self.disparity_df = result_df
 
-        return result_df
+        return self
 
     def customized_statistics(self, customized_function, customized_name ='customized', custom_agg = False, test = False, **kwargs):
         summary_function = customized_function
         summary_df, summary_df_with_p_values = self._summary_statistics(summary_function, custom_agg = custom_agg, permutation_test=test, **kwargs)
         self.summary_df_dict[customized_name] = summary_df
         self.summary_df_dict_with_p_values[customized_name] = summary_df_with_p_values
-        if test:
-            return summary_df_with_p_values
-        else:
-            return summary_df
+        # Return self to enable method chaining
+        return self
 
     def mean(self, **kwargs):
         summary_function = lambda x: np.mean(x.dropna()) if not x.dropna().empty else np.nan
