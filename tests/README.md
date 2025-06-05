@@ -2,7 +2,7 @@
 
 Comprehensive testing framework for the SAGED bias analysis platform, covering unit tests, integration tests, and end-to-end validation.
 
-![pytest](https://img.shields.io/badge/pytest-7.0+-green) ![Coverage](https://img.shields.io/badge/coverage-85%25-green) ![Python](https://img.shields.io/badge/python-3.8+-blue)
+![pytest](https://img.shields.io/badge/pytest-7.0+-green) ![Coverage](https://img.shields.io/badge/coverage-85%25-green) ![Python](https://img.shields.io/badge/python-3.10+-blue)
 
 ## 🚀 Quick Start
 
@@ -646,7 +646,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: [3.8, 3.9, "3.10", 3.11]
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
       - uses: actions/checkout@v3

@@ -2,7 +2,7 @@
 
 FastAPI-based REST API server providing bias analysis functionality and data management for the SAGED platform.
 
-![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green) ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0+-blue) ![Python](https://img.shields.io/badge/python-3.8+-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green) ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0+-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue)
 
 ## 🚀 Quick Start
 
@@ -352,7 +352,7 @@ SELECT * FROM benchmarks LIMIT 5;
 ### Docker
 
 ```dockerfile
-FROM python:3.9-slim
+FROM python:3.10-slim
 
 WORKDIR /app
 COPY requirements.txt .

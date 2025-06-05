@@ -2,7 +2,7 @@
 
 Interactive tutorials and examples for learning the SAGED bias detection methodology and platform usage.
 
-![Jupyter](https://img.shields.io/badge/Jupyter-Notebooks-orange) ![Python](https://img.shields.io/badge/python-3.8+-blue) ![SAGED](https://img.shields.io/badge/SAGED-Tutorial-green)
+![Jupyter](https://img.shields.io/badge/Jupyter-Notebooks-orange) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![SAGED](https://img.shields.io/badge/SAGED-Tutorial-green)
 
 ## 🚀 Quick Start
 
@@ -452,7 +452,7 @@ By completing these tutorials, you will:
 
 ```bash
 # Core requirements
-python>=3.8
+python>=3.10
 jupyter>=1.0
 pandas>=1.3
 numpy>=1.20

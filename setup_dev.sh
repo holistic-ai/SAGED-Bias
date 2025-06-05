@@ -7,7 +7,19 @@ echo "================================================================"
 
 # Check if Python is installed
 if ! command -v python3 &> /dev/null; then
-    echo "❌ Python 3 is required but not installed."
+    echo "❌ Python 3.10+ is required but not installed."
+    exit 1
+fi
+
+# Check Python version
+PYTHON_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+REQUIRED_VERSION="3.10"
+
+if python3 -c "import sys; exit(0 if sys.version_info >= (3, 10) else 1)"; then
+    echo "✅ Python $PYTHON_VERSION detected (required: 3.10+)"
+else
+    echo "❌ Python 3.10+ is required, but Python $PYTHON_VERSION is installed."
+    echo "Please upgrade Python to version 3.10 or higher."
     exit 1
 fi
 
@@ -56,14 +68,14 @@ mkdir -p data/app_data/experiments
 echo "✅ Directories created"
 
 # Make scripts executable
-chmod +x start_app.py
+chmod +x start_full_app.py
 chmod +x setup_dev.sh
 
 echo ""
 echo "🎉 Setup complete!"
 echo ""
 echo "To start the application:"
-echo "1. Start the backend: python start_app.py"
+echo "1. Start the backend: python start_full_app.py"
 echo "2. In another terminal, start the frontend:"
 echo "   cd app/frontend && npm run dev"
 echo ""

@@ -2,7 +2,7 @@
 
 The core bias detection library implementing the SAGED (Scrape, Assemble, Generate, Extract, Diagnose) methodology for identifying and analyzing bias in Large Language Models.
 
-![Python](https://img.shields.io/badge/python-3.8+-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![SAGED](https://img.shields.io/badge/SAGED-Pipeline-orange)
+![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![SAGED](https://img.shields.io/badge/SAGED-Pipeline-orange)
 
 ## 🧠 SAGED Methodology
 

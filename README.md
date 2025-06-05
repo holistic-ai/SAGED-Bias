@@ -2,7 +2,7 @@
 
 [![ArXiv](https://img.shields.io/badge/ArXiv-2409.11149-red)](https://arxiv.org/abs/2409.11149)
 ![License](https://img.shields.io/badge/License-MIT-blue)
-![SAGED Platform](https://img.shields.io/badge/SAGED-Bias%20Analysis-blue) ![Python](https://img.shields.io/badge/python-3.8+-green) ![React](https://img.shields.io/badge/react-18+-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-latest-green)
+![SAGED Platform](https://img.shields.io/badge/SAGED-Bias%20Analysis-blue) ![Python](https://img.shields.io/badge/python-3.10+-green) ![React](https://img.shields.io/badge/react-18+-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-latest-green)
 
 **Authors**: Xin Guan, Nathaniel Demchak, Saloni Gupta, Ze Wang, Ediz Ertekin Jr., Adriano Koshiyama, Emre Kazim, Zekun Wu  
 **Conference**: COLING 2025 Main Conference  
@@ -30,7 +30,7 @@ The SAGED methodology implements a systematic 5-stage approach:
 
 ### Prerequisites
 
-- **Python 3.8+** with pip
+- **Python 3.10+** with pip
 - **Node.js 16+** with npm
 - **Git** for version control
 
