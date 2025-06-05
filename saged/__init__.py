@@ -6,7 +6,7 @@ from ._utility import clean_list, construct_non_containing_set, check_generation
 from ._assembler import PromptAssembler
 from ._generator import ResponseGenerator
 from ._pipeline import Pipeline
-
+from ._mpf_pipeline import MPFPipeline
 
 __all__ = [
     'SAGEDData',
@@ -24,7 +24,8 @@ __all__ = [
     'Pipeline',
     'SourceFinder',
     'Scraper',
-    'ignore_future_warnings'
+    'ignore_future_warnings',
+    'MPFPipeline',
 ]
 
 __version__ = "0.0.15"
