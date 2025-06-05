@@ -6,6 +6,7 @@ from ._saged_data import SAGEDData as saged
 from ._scrape import KeywordFinder, SourceFinder, Scraper, check_generation_function
 from ._assembler import PromptAssembler as PromptMaker
 from ._utility import _update_configuration
+from sqlalchemy import create_engine
 
 class Pipeline:
     _branching_config_scheme = {}
@@ -240,6 +241,11 @@ class Pipeline:
             cls._database_config_scheme.copy(),
             cls._database_default_config.copy(),
             config.get('database_config', {}))
+
+        # Create initial data with database config
+        kw = saged.create_data(domain=domain, concept=demographic_label, data_tier='keywords',
+                             use_database=database_config['use_database'],
+                             database_config=database_config)
 
         # Unpacking keyword_finder section
         keyword_finder_config = configuration['keyword_finder']
@@ -522,6 +528,7 @@ class Pipeline:
             cls._database_default_config.copy(),
             config.get('database_config', {}))
 
+        # Create domain benchmark with database config
         domain_benchmark = saged.create_data(domain=domain, concept='all', data_tier='split_sentences',
                                            use_database=database_config['use_database'],
                                            database_config=database_config)
@@ -566,6 +573,25 @@ class Pipeline:
             cls._analytics_default_config.copy(),
             config.copy())
 
+        # Get database configuration
+        database_config = _update_configuration(
+            cls._database_config_scheme.copy(),
+            cls._database_default_config.copy(),
+            config.get('database_config', {}))
+
+        def save_to_database_or_file(df, location, suffix=None):
+            if database_config['use_database']:
+                engine = create_engine(database_config['database_connection'])
+                table_name = location.replace('.csv', '')
+                if suffix:
+                    table_name = f"{table_name}_{suffix}"
+                df.to_sql(table_name, engine, if_exists='replace', index=False)
+                print(f"Data saved to database table {table_name}")
+            else:
+                if suffix:
+                    location = location.replace('.csv', f'_{suffix}.csv')
+                df.to_csv(location, index=False)
+                print(f"Data saved to {location}")
 
         if v['generation']['require']:
             gen = ResponseGenerator(v['benchmark'])
@@ -573,7 +599,7 @@ class Pipeline:
             for name, gf in v['generation']['generate_dict'].items():
                 gen.generate(gf, generation_name=name, save_path=v['generation']['generation_saving_location'])
             sbg_benchmark = gen.benchmark.copy()
-            sbg_benchmark.to_csv(v['generation']['generation_saving_location'], index=False)
+            save_to_database_or_file(sbg_benchmark, v['generation']['generation_saving_location'])
 
             generation_list = list(v['generation']['generate_dict'].keys())
             glb = ['baseline'] + generation_list.copy()
@@ -593,7 +619,7 @@ class Pipeline:
                 print(f"Method {x} does not exist: {e}")
             except Exception as e:
                 print(f"Error calling method {x}: {e}")
-        sbge_benchmark.to_csv(v['extraction']['extraction_saving_location'], index=False)
+        save_to_database_or_file(sbge_benchmark, v['extraction']['extraction_saving_location'])
         raw_features = fe.classification_features + fe.cluster_features
         calibrated_features = fe.calibrated_features
 
@@ -613,20 +639,15 @@ class Pipeline:
                     method_to_call = getattr(ana, x)
                     sbgea_benchmark = method_to_call(test=False, **v['analysis']['analyzer_configs'].get(x, {}))
                     if k == 0:
-                        sbgea_benchmark.to_csv(v['analysis']['statistics_saving_location'].replace('.csv', f'_{x}.csv'), index=False)
+                        save_to_database_or_file(sbgea_benchmark, v['analysis']['statistics_saving_location'], x)
                     elif k == 1:
-                        disparity_calibrated_saving_location = v['analysis']['statistics_saving_location'].replace(
-                            '.csv',
-                            f'_calibrated_{x}.csv')
-                        sbgea_benchmark.to_csv(disparity_calibrated_saving_location, index=False)
+                        save_to_database_or_file(sbgea_benchmark, v['analysis']['statistics_saving_location'], f'calibrated_{x}')
                 except AttributeError as e:
                     print(f"Method {x} does not exist: {e}")
                 except Exception as e:
                     print(f"Error calling method {x}: {e}")
             df = ana.statistics_disparity()
             if k == 0:
-                df.to_csv(v['analysis']['disparity_saving_location'], index=False)
+                save_to_database_or_file(df, v['analysis']['disparity_saving_location'])
             elif k == 1:
-                disparity_calibrated_saving_location = v['analysis']['disparity_saving_location'].replace('.csv',
-                                                                                                          '_calibrated.csv')
-                df.to_csv(disparity_calibrated_saving_location, index=False)
+                save_to_database_or_file(df, v['analysis']['disparity_saving_location'], 'calibrated')
