@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
+import QuickAnalysis from "./pages/QuickAnalysis";
+import QuickAnalysisComparison from "./pages/QuickAnalysisComparison";
 import Benchmarks from "./pages/Benchmarks";
 import Experiments from "./pages/Experiments";
 import Analysis from "./pages/Analysis";
@@ -24,6 +26,11 @@ function App() {
         <Layout>
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/quick-analysis" element={<QuickAnalysis />} />
+            <Route
+              path="/model-comparison"
+              element={<QuickAnalysisComparison />}
+            />
             <Route path="/benchmarks" element={<Benchmarks />} />
             <Route path="/experiments" element={<Experiments />} />
             <Route path="/analysis" element={<Analysis />} />

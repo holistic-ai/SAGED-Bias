@@ -10,11 +10,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 # Import application modules with fallback for direct execution
 try:
     from .database import engine, Base
-    from .routers import benchmarks, experiments, analysis, data
+    from .routers import benchmarks, experiments, analysis, data, saged
 except ImportError:
     # Fallback for when running directly from backend directory
     from database import engine, Base
-    from routers import benchmarks, experiments, analysis, data
+    from routers import benchmarks, experiments, analysis, data, saged
 
 
 @asynccontextmanager
@@ -45,6 +45,7 @@ app.include_router(benchmarks.router, prefix="/api/v1/benchmarks", tags=["benchm
 app.include_router(experiments.router, prefix="/api/v1/experiments", tags=["experiments"])
 app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["analysis"])
 app.include_router(data.router, prefix="/api/v1/data", tags=["data"])
+app.include_router(saged.router, prefix="/api/v1", tags=["saged"])
 
 
 @app.get("/")

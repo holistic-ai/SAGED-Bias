@@ -12,6 +12,10 @@ try:
 except ImportError:
     from models.experiment import Experiment
     from models.results import AnalysisResult
+    # Import SAGEDService from the same directory
+    import sys
+    import os
+    sys.path.append(os.path.dirname(__file__))
     from saged_service import SAGEDService
 
 

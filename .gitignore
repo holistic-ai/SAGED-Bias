@@ -48,6 +48,11 @@ Thumbs.db
 
 # Environment files
 *.env
+.env
+.env.local
+.env.development
+.env.test
+.env.production
 
 # Test coverage reports
 .coverage*
@@ -89,3 +94,34 @@ build/
 
 # IDE settings
 settings.yaml
+
+# API keys and secrets
+api_keys.txt
+secrets.txt
+config/secrets/
+*.pem
+*.key
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache directories
+.cache/
+.npm/
+.yarn/
+
+# Application specific
+app/backend/.env
+app/frontend/.env
+app/.env
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Runtime files
+*.pid
+*.sock

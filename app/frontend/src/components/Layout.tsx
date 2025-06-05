@@ -10,6 +10,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const navigation = [
     { name: "Dashboard", href: "/", icon: "📊" },
+    { name: "Quick Analysis", href: "/quick-analysis", icon: "⚡" },
+    { name: "Model Comparison", href: "/model-comparison", icon: "⚖️" },
     { name: "Benchmarks", href: "/benchmarks", icon: "📋" },
     { name: "Experiments", href: "/experiments", icon: "🧪" },
     { name: "Analysis", href: "/analysis", icon: "📈" },
