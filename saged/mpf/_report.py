@@ -6,7 +6,7 @@ import os
 import json
 from datetime import datetime
 
-from xnation._mitigator import Mitigator
+from ._mitigator import Mitigator
 
 def load_data(file_path: str) -> pd.DataFrame:
     """Load the benchmark data from CSV file."""

@@ -9,7 +9,7 @@ def sample_data():
     # Sample data for tests
     return [
         {
-            "category": "test_category",
+            "concept": "test_concept",
             "domain": "test_domain",
             "keywords": {
                 "keyword1": {
@@ -19,7 +19,7 @@ def sample_data():
                     "scrap_shared_area": "Yes"
                 }
             },
-            "category_shared_source": [
+            "concept_shared_source": [
                 {
                     "source_tag": "default",
                     "source_type": "unknown",
@@ -34,16 +34,16 @@ def sample_dataframe():
     # Sample dataframe for split_sentences or questions
     return pd.DataFrame({
         "keyword": ["keyword1"],
-        "category": ["test_category"],
+        "concept": ["test_concept"],
         "domain": ["test_domain"],
         "prompts": ["sample prompt"],
         "baseline": ["sample baseline"]
     })
 
 def test_init():
-    instance = SAGEDData("test_domain", "test_category", "keywords")
+    instance = SAGEDData("test_domain", "test_concept", "keywords")
     assert instance.domain == "test_domain"
-    assert instance.category == "test_category"
+    assert instance.concept == "test_concept"
     assert instance.data_tier == "keywords"
     assert isinstance(instance.data, list)
 
@@ -57,14 +57,14 @@ def test_check_format_dataframe(sample_dataframe):
 
 def test_create_data_keywords():
     # Validate create_data for keywords tier
-    instance = SAGEDData.create_data("test_domain", "test_category", "keywords")
+    instance = SAGEDData.create_data("test_domain", "test_concept", "keywords")
     assert instance.data[0]["keywords"] == {}
 
 def test_create_data_split_sentences():
     # Validate create_data for split_sentences tier
-    instance = SAGEDData.create_data("test_domain", "test_category", "split_sentences")
+    instance = SAGEDData.create_data("test_domain", "test_concept", "split_sentences")
     assert isinstance(instance.data, pd.DataFrame)
-    assert list(instance.data.columns) == ["keyword", "category", "domain", "prompts", "baseline", "source_tag"]
+    assert list(instance.data.columns) == ["keyword", "concept", "domain", "prompts", "baseline", "source_tag"]
 
 def test_load_file(tmpdir, sample_data):
     # Test loading a JSON file
@@ -72,13 +72,13 @@ def test_load_file(tmpdir, sample_data):
     with open(test_file, "w") as f:
         json.dump(sample_data, f)
 
-    instance = SAGEDData.load_file("test_domain", "test_category", "keywords", str(test_file))
+    instance = SAGEDData.load_file("test_domain", "test_concept", "keywords", str(test_file))
     assert instance is not None
     assert instance.data == sample_data
 
 def test_save_file(tmpdir, sample_data):
     # Test saving a JSON file
-    instance = SAGEDData("test_domain", "test_category", "keywords")
+    instance = SAGEDData("test_domain", "test_concept", "keywords")
     instance.data = sample_data
 
     test_file = tmpdir.join("output.json")
@@ -91,7 +91,7 @@ def test_save_file(tmpdir, sample_data):
 
 def test_show(capsys, sample_data):
     # Test show method
-    instance = SAGEDData("test_domain", "test_category", "keywords")
+    instance = SAGEDData("test_domain", "test_concept", "keywords")
     instance.data = sample_data
 
     instance.show("short", data_tier="keywords")
@@ -100,7 +100,7 @@ def test_show(capsys, sample_data):
 
 def test_add_keyword(sample_data):
     # Test adding a keyword
-    instance = SAGEDData("test_domain", "test_category", "keywords")
+    instance = SAGEDData("test_domain", "test_concept", "keywords")
     instance.data = sample_data
 
     instance.add(keyword="new_keyword")
@@ -108,7 +108,7 @@ def test_add_keyword(sample_data):
 
 def test_remove_keyword(sample_data):
     # Test removing a keyword
-    instance = SAGEDData("test_domain", "test_category", "keywords")
+    instance = SAGEDData("test_domain", "test_concept", "keywords")
     instance.data = sample_data
 
     instance.remove("keyword1", data_tier="keywords")
@@ -116,7 +116,7 @@ def test_remove_keyword(sample_data):
 
 def test_sub_sample(sample_dataframe):
     # Test sub-sampling a DataFrame
-    instance = SAGEDData.create_data("test_domain", "test_category", "split_sentences", sample_dataframe)
+    instance = SAGEDData.create_data("test_domain", "test_concept", "split_sentences", sample_dataframe)
     sub_sampled = instance.sub_sample(sample=1, saged_format=True)
     assert len(sub_sampled.data) == 1
 
@@ -125,7 +125,7 @@ def test_model_generation(sample_dataframe):
     def mock_generation_function(prompt):
         return f"Generated: {prompt}"
 
-    instance = SAGEDData.create_data("test_domain", "test_category", "split_sentences", sample_dataframe)
+    instance = SAGEDData.create_data("test_domain", "test_concept", "split_sentences", sample_dataframe)
     instance.model_generation(mock_generation_function, "generated_output")
     assert "generated_output" in instance.data.columns
     assert instance.data["generated_output"][0] == "Generated: sample prompt"

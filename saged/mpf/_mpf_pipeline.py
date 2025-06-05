@@ -5,11 +5,11 @@ from pathlib import Path
 import json
 from typing import List, Dict
 
-from xnation._mitigator import Mitigator
-from xnation._generator import ResponseGenerator
-from xnation._plotter import plot_benchmark_results
-from xnation._extractor import FeatureExtractor
-from xnation._report import (
+from ._mitigator import Mitigator
+from ._generator import ResponseGenerator
+from ._plotter import plot_benchmark_results
+from ._extractor import FeatureExtractor
+from ._report import (
     load_data,
     calculate_objective_metrics,
     calculate_domain_metrics,

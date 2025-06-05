@@ -2,8 +2,8 @@ import os
 import json
 import pandas as pd
 from datetime import datetime
-from xnation._mpf_pipeline import mpf_pipeline
-from xnation.LLMFactory import LLMFactory
+from ._mpf_pipeline import mpf_pipeline
+from .LLMFactory import LLMFactory
 
 def create_generation_function(model_name="deepseek-r1-distill-qwen-1.5b", system_prompt="You are a helpful assistant."):
     """Create a generation function using LLMFactory with a specific system prompt."""

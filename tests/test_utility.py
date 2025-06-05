@@ -19,7 +19,7 @@ from saged import (
 def sample_dataframe():
     return pd.DataFrame({
         "keyword": ["test_keyword"],
-        "category": ["test_category"],
+        "concept": ["test_concept"],
         "domain": ["test_domain"],
         "prompts": ["test_prompt"],
         "baseline": ["test_baseline"]

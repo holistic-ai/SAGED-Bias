@@ -1,5 +1,5 @@
 import pandas as pd
-from xnation._plotter import plot_benchmark_results
+from ._plotter import plot_benchmark_results
 from datetime import datetime
 
 def plot_sentiment_results():

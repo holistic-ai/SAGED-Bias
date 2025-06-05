@@ -1,14 +1,14 @@
 from saged import Pipeline
 import os
 import pandas as pd
-from xnation.LLMFactory import LLMFactory
-from xnation.constantpath import (
-    XNATION_DATA_DIR, XNATION_KEYWORDS_DIR, XNATION_SOURCES_DIR,
-    XNATION_SCRAPED_DIR, XNATION_BENCHMARK_DIR, XNATION_FINAL_BENCHMARK_DIR,
-    XNATION_TEXT_PATH, XNATION_REPLACEMENT_DESCRIPTION_PATH,
-    XNATION_GENERATIONS_PATH, XNATION_EXTRACTIONS_PATH,
-    XNATION_STATISTICS_PATH, XNATION_DISPARITY_PATH,
-    DATA_DIR
+from .LLMFactory import LLMFactory
+from .constantpath import (
+    MPF_DATA_DIR, MPF_KEYWORDS_DIR, MPF_SOURCES_DIR,
+    MPF_SCRAPED_DIR, MPF_BENCHMARK_DIR, MPF_FINAL_BENCHMARK_DIR,
+    MPF_TEXT_PATH, MPF_REPLACEMENT_DESCRIPTION_PATH,
+    MPF_GENERATIONS_PATH, MPF_EXTRACTIONS_PATH,
+    MPF_STATISTICS_PATH, MPF_DISPARITY_PATH,
+    DATA_DIR,
 )
 
 def create_generation_function(model_name="deepseek-r1-distill-qwen-1.5b", system_prompt="You are a helpful assistant."):
@@ -59,17 +59,17 @@ def create_xntion_benchmark():
     gen_function = create_generation_function(model_name="qwen-turbo-latest")
 
     # Use file paths for saving_location
-    KEYWORDS_FILE = os.path.join(XNATION_KEYWORDS_DIR, "keywords.json")
-    SOURCES_FILE = os.path.join(XNATION_SOURCES_DIR, "sources.json")
-    SCRAPED_FILE = os.path.join(XNATION_SCRAPED_DIR, "scraped.json")
-    BENCHMARK_FILE = os.path.join(XNATION_BENCHMARK_DIR, "benchmark.csv")
-    FINAL_BENCHMARK_FILE = os.path.join(XNATION_FINAL_BENCHMARK_DIR, "final_benchmark.csv")
+    KEYWORDS_FILE = os.path.join(MPF_KEYWORDS_DIR, "keywords.json")
+    SOURCES_FILE = os.path.join(MPF_SOURCES_DIR, "sources.json")
+    SCRAPED_FILE = os.path.join(MPF_SCRAPED_DIR, "scraped.json")
+    BENCHMARK_FILE = os.path.join(MPF_BENCHMARK_DIR, "benchmark.csv")
+    FINAL_BENCHMARK_FILE = os.path.join(MPF_FINAL_BENCHMARK_DIR, "final_benchmark.csv")
 
     # Create necessary directories with proper error handling
     try:
         # Create all directories
-        for dir_path in [XNATION_DATA_DIR, XNATION_KEYWORDS_DIR, XNATION_SOURCES_DIR, 
-                        XNATION_SCRAPED_DIR, XNATION_BENCHMARK_DIR, XNATION_FINAL_BENCHMARK_DIR]:
+        for dir_path in [MPF_DATA_DIR, MPF_KEYWORDS_DIR, MPF_SOURCES_DIR, 
+                        MPF_SCRAPED_DIR, MPF_BENCHMARK_DIR, MPF_FINAL_BENCHMARK_DIR]:
             try:
                 os.makedirs(dir_path, exist_ok=True)
                 # Test write permissions
@@ -92,7 +92,7 @@ def create_xntion_benchmark():
     # keywords_data = SAGEDData.create_data(domain, category, "keywords")
     # keywords_data.add(keyword=category)
     # source_finder = SourceFinder(keywords_data)
-    # local_sources = source_finder.find_scrape_paths_local(os.path.dirname(XNATION_TEXT_PATH))
+            # local_sources = source_finder.find_scrape_paths_local(os.path.dirname(MPF_TEXT_PATH))
     # local_sources.save(SOURCES_FILE)
     # print(f"Sources saved to {SOURCES_FILE}")
 
@@ -130,7 +130,7 @@ def create_xntion_benchmark():
             'source_finder': {
                 'require': True,
                 'method': 'local_files',
-                'local_file': os.path.dirname(XNATION_TEXT_PATH),
+                'local_file': os.path.dirname(MPF_TEXT_PATH),
                 'saving': True,
                 'saving_location': SOURCES_FILE,
             },
@@ -174,8 +174,8 @@ def run_existing_benchmark_with_multiple_prompts():
     # Load the existing benchmark
     try:
         # Load as DataFrame and limit to first 10 rows
-        benchmark_df = pd.read_csv(os.path.join(XNATION_FINAL_BENCHMARK_DIR, "final_benchmark.csv"))
-        # benchmark_df = pd.read_csv(os.path.join(XNATION_GENERATIONS_PATH))
+        benchmark_df = pd.read_csv(os.path.join(MPF_FINAL_BENCHMARK_DIR, "final_benchmark.csv"))
+        # benchmark_df = pd.read_csv(os.path.join(MPF_GENERATIONS_PATH))
         print("Successfully loaded existing benchmark as DataFrame")
         print(f"Benchmark shape: {benchmark_df.shape}")
         print(benchmark_df.head())
@@ -208,7 +208,7 @@ def run_existing_benchmark_with_multiple_prompts():
         "generation": {
             "require": True,
             "generate_dict": generate_dict,
-            "generation_saving_location": XNATION_GENERATIONS_PATH,
+            "generation_saving_location": MPF_GENERATIONS_PATH,
             "generation_list": list(system_prompts.keys()),
             "baseline": "baseline"  # Use the existing 'baseline' column instead of 'neutral'
         },
@@ -220,7 +220,7 @@ def run_existing_benchmark_with_multiple_prompts():
             ],
             'extractor_configs': {},
             "calibration": True,
-            "extraction_saving_location": XNATION_EXTRACTIONS_PATH
+            "extraction_saving_location": MPF_EXTRACTIONS_PATH
         },
         "analysis": {
             "specifications": ['concept'],
@@ -229,8 +229,8 @@ def run_existing_benchmark_with_multiple_prompts():
             #     'selection_rate': {'standard_by': 'mean'},
             #     'precision': {'tolerance': 0.1}
             # },
-            'statistics_saving_location': XNATION_STATISTICS_PATH,
-            "disparity_saving_location": XNATION_DISPARITY_PATH
+                    'statistics_saving_location': MPF_STATISTICS_PATH,
+        "disparity_saving_location": MPF_DISPARITY_PATH
         }
     }
 

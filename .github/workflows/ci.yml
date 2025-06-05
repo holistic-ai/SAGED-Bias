@@ -15,36 +15,34 @@ jobs:
     steps:
     # Checkout the repository
     - name: Checkout code
-      uses: actions/checkout@v3
-
-        # Set PYTHONPATH
-    - name: Set PYTHONPATH
-      run: |
-        export PYTHONPATH=$PYTHONPATH:$(pwd)
+        uses: actions/checkout@v4
 
     # Set up Python environment
     - name: Set up Python
-      uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
       with:
         python-version: "3.10"
 
-    # Install Hatch
-    - name: Install Hatch
-      run: |
-        python -m pip install --upgrade pip
-        pip install hatch pytest pytest-cov
+      # Install uv
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
 
-    # Create and update the Hatch environment
-    - name: Create Hatch Environment
+      # Set up virtual environment and install dependencies
+      - name: Set up environment
       run: |
-        hatch env create
-
-    # Debug: List installed packages
-    - name: List installed packages
-      run: |
-        hatch run pip list
+          uv venv --python 3.10
+          uv sync
 
     # Run tests
     - name: Run tests
       run: |
-        hatch run testing:run
+          uv run pytest tests/ --cov=saged --cov-report=xml
+
+      # Upload coverage to Codecov (optional)
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false

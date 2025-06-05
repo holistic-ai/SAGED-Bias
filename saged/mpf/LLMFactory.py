@@ -3,7 +3,7 @@ import os
 import json
 from string import Template
 from openai import OpenAI
-from xnation.constantpath import CURRENT_DIR, PROJECT_ROOT
+from .constantpath import CURRENT_DIR, PROJECT_ROOT
 
 
 class LLMFactory:

@@ -1,7 +1,6 @@
 # SAGED: A Holistic Bias-Benchmarking Pipeline for Language Models with Customisable Fairness Calibration
 
-
-[![ArXiv](https://img.shields.io/badge/ArXiv-2409.11149-red)](https://arxiv.org/abs/2409.11149) 
+[![ArXiv](https://img.shields.io/badge/ArXiv-2409.11149-red)](https://arxiv.org/abs/2409.11149)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 **Authors**: Xin Guan, Nathaniel Demchak, Saloni Gupta, Ze Wang, Ediz Ertekin Jr., Adriano Koshiyama, Emre Kazim, Zekun Wu  
@@ -28,30 +27,115 @@ This diagram illustrates the core stages of the SAGED pipeline:
 
 ## Installation
 
-[//]: # (### Install the latest version of SAGED-bias from PyPi using pip:)
-
-[//]: # ()
-[//]: # (```bash)
-
-[//]: # (pip install sagedbias)
-
-[//]: # (```)
-
 ### Install the library from PyPI:
 
 ```bash
 pip install sagedbias
 ```
- 
-### Import the library 
+
+### Development Setup
+
+For development and testing, we recommend using `uv` for fast dependency management:
+
+```bash
+# Install uv
+pip install uv
+
+# Clone the repository
+git clone https://github.com/holistic-ai/SAGED-Bias.git
+cd SAGED-Bias
+
+# Create virtual environment and install dependencies
+uv venv --python 3.10
+uv sync
+
+# Run tests
+uv run pytest tests/
+```
+
+## Quick Start
+
+### Basic Usage
+
 ```python
 from saged import Pipeline
 from saged import Scraper, KeywordFinder, SourceFinder
 from saged import PromptAssembler
 from saged import FeatureExtractor
 from saged import DisparityDiagnoser
+
+# Build a bias benchmark
+config = {
+    'categories': ['nationality'],
+    'branching': True,
+    'shared_config': {
+        'keyword_finder': {'require': True},
+        'source_finder': {'require': True},
+        'scraper': {'require': True},
+        'prompt_assembler': {'require': True}
+    }
+}
+
+benchmark = Pipeline.build_benchmark('demographics', config)
 ```
 
+### Research Extensions (MPF)
+
+For advanced research using Multi-Perspective Fusion (MPF):
+
+```python
+from saged.mpf import mpf_pipeline, Mitigator, LLMFactory
+
+# MPF bias mitigation
+mitigator = Mitigator()
+results = mpf_pipeline(benchmark_data, mitigator)
+```
+
+## Repository Structure
+
+```
+SAGED-Bias/
+├── saged/                    # Core SAGED pipeline
+│   ├── mpf/                  # MPF extension (Multi-Perspective Fusion)
+│   ├── _pipeline.py          # Main pipeline
+│   ├── _extractor.py         # Feature extraction
+│   └── ...                   # Other core modules
+├── tests/                    # Test suite (21 tests)
+├── tutorials/                # Jupyter notebook tutorials
+├── examples/                 # Usage examples
+├── scripts/                  # Utility scripts
+└── MPF_icml/                 # ICML 2025 paper materials
+```
+
+## Testing
+
+Run the test suite:
+
+```bash
+# Using uv (recommended)
+uv run pytest tests/ -v
+
+# With coverage
+uv run pytest tests/ --cov=saged
+
+# Using the test runner script
+python run_tests.py --verbose --coverage
+```
+
+## Maintenance
+
+Clean build artifacts and temporary files:
+
+```bash
+# Preview cleanup
+python scripts/cleanup.py --dry-run
+
+# Clean cache files and build artifacts
+python scripts/cleanup.py
+
+# Clean everything including coverage reports
+python scripts/cleanup.py --all
+```
 
 ## Citation
 
