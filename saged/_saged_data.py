@@ -3,6 +3,9 @@ import os
 import pandas as pd
 from tqdm import tqdm
 from collections import defaultdict
+import sqlite3
+import sqlalchemy
+from sqlalchemy import create_engine, text
 
 tqdm.pandas()
 
@@ -31,10 +34,12 @@ class SAGEDData:
     }
 
 
-    def __init__(self, domain, concept, data_tier, file_name=None):
+    def __init__(self, domain, concept, data_tier, file_name=None, use_database=False, database_config=None):
         self.domain = domain
         self.concept = concept
         self.data_tier = data_tier
+        self.use_database = use_database
+        self.database_config = database_config or {}
         assert data_tier in ['keywords', 'source_finder', 'scraped_sentences',
                              'split_sentences', 'questions'], "Invalid data tier. Choose from 'keywords', 'source_finder', 'scraped_sentences', 'split_sentences', 'questions'."
         # self.tier_order = {value: index for index, value in enumerate(['keywords', 'source_finder', 'scraped_sentences', 'split_sentences'])}
@@ -42,6 +47,125 @@ class SAGEDData:
         self.data = [{
             "concept": self.concept,
             "domain": self.domain}]
+
+    def _get_database_connection(self):
+        if not self.use_database:
+            return None
+            
+        if self.database_config.get('database_type') == 'sql':
+            if 'database_connection' in self.database_config:
+                return create_engine(self.database_config['database_connection'])
+            else:
+                # Default SQLite connection
+                db_path = os.path.join('data', 'customized', 'database', f'{self.domain}.db')
+                os.makedirs(os.path.dirname(db_path), exist_ok=True)
+                return create_engine(f'sqlite:///{db_path}')
+        return None
+
+    def _get_table_name(self):
+        return f"{self.domain}_{self.concept}_{self.data_tier}"
+
+    def _save_to_database(self, engine, table_name):
+        """Save data to database based on data tier type"""
+        if self.data_tier in ['split_sentences', 'questions']:
+            # These tiers are already in DataFrame format
+            self.data.to_sql(table_name, engine, if_exists='replace', index=False)
+        else:
+            # For JSON-like data tiers, we need to handle nested structures
+            if self.data_tier == 'keywords':
+                # Keywords have a specific structure with nested metadata
+                df = pd.json_normalize(self.data, 
+                                     record_path=['keywords'],
+                                     meta=['domain', 'concept'],
+                                     errors='ignore')
+                df.to_sql(table_name, engine, if_exists='replace', index=False)
+                
+                # Save metadata in a separate table
+                metadata_table = f"{table_name}_metadata"
+                metadata_df = pd.json_normalize(self.data, 
+                                             record_path=['keywords'],
+                                             meta=['domain', 'concept'],
+                                             errors='ignore')
+                metadata_df.to_sql(metadata_table, engine, if_exists='replace', index=False)
+                
+            elif self.data_tier == 'source_finder':
+                # Source finder has nested source specifications
+                df = pd.json_normalize(self.data, 
+                                     record_path=['concept_shared_source'],
+                                     meta=['domain', 'concept'],
+                                     errors='ignore')
+                df.to_sql(table_name, engine, if_exists='replace', index=False)
+                
+            elif self.data_tier == 'scraped_sentences':
+                # Scraped sentences have nested sentence data
+                df = pd.json_normalize(self.data, 
+                                     record_path=['keywords', 'scraped_sentences'],
+                                     meta=['domain', 'concept'],
+                                     errors='ignore')
+                df.to_sql(table_name, engine, if_exists='replace', index=False)
+
+    def _load_from_database(self, engine, table_name):
+        """Load data from database based on data tier type"""
+        if self.data_tier in ['split_sentences', 'questions']:
+            # These tiers are stored as DataFrames
+            self.data = pd.read_sql_table(table_name, engine)
+        else:
+            # For JSON-like data tiers, we need to reconstruct the nested structure
+            if self.data_tier == 'keywords':
+                # Load main data
+                df = pd.read_sql_table(table_name, engine)
+                # Load metadata
+                metadata_table = f"{table_name}_metadata"
+                metadata_df = pd.read_sql_table(metadata_table, engine)
+                
+                # Reconstruct the original structure
+                self.data = []
+                for _, row in df.iterrows():
+                    item = {
+                        'domain': row['domain'],
+                        'concept': row['concept'],
+                        'keywords': {}
+                    }
+                    # Add keywords and their metadata
+                    for keyword, metadata in zip(row['keywords'], metadata_df[metadata_df['domain'] == row['domain']].itertuples()):
+                        item['keywords'][keyword] = {
+                            'keyword_type': metadata.keyword_type,
+                            'keyword_provider': metadata.keyword_provider,
+                            'scrap_mode': metadata.scrap_mode,
+                            'scrap_shared_area': metadata.scrap_shared_area,
+                            'targeted_source': metadata.targeted_source
+                        }
+                    self.data.append(item)
+                    
+            elif self.data_tier == 'source_finder':
+                df = pd.read_sql_table(table_name, engine)
+                self.data = []
+                for _, row in df.iterrows():
+                    item = {
+                        'domain': row['domain'],
+                        'concept': row['concept'],
+                        'concept_shared_source': [{
+                            'source_tag': row['source_tag'],
+                            'source_type': row['source_type'],
+                            'source_specification': row['source_specification']
+                        }]
+                    }
+                    self.data.append(item)
+                    
+            elif self.data_tier == 'scraped_sentences':
+                df = pd.read_sql_table(table_name, engine)
+                self.data = []
+                for _, row in df.iterrows():
+                    item = {
+                        'domain': row['domain'],
+                        'concept': row['concept'],
+                        'keywords': {
+                            row['keyword']: {
+                                'scraped_sentences': row['scraped_sentences']
+                            }
+                        }
+                    }
+                    self.data.append(item)
 
     @staticmethod
     def check_format(data_tier=None, data=None, source_finder_only=False):
@@ -110,8 +234,21 @@ class SAGEDData:
             assert 'baseline' in data.columns, "DataFrame must contain 'baseline' column"
 
     @classmethod
-    def load_file(cls, domain, concept, data_tier, file_path):
-        instance = cls(domain, concept, data_tier, file_path)
+    def load_file(cls, domain, concept, data_tier, file_path, use_database=False, database_config=None):
+        instance = cls(domain, concept, data_tier, file_path, use_database, database_config)
+        
+        if use_database:
+            engine = instance._get_database_connection()
+            if engine:
+                table_name = instance._get_table_name()
+                try:
+                    instance._load_from_database(engine, table_name)
+                    cls.check_format(data_tier, instance.data)
+                    return instance
+                except Exception as e:
+                    print(f"Error loading from database: {e}")
+                    return None
+
         try:
             if data_tier == 'split_sentences' or data_tier == 'questions':
                 instance.data = pd.read_csv(file_path)
@@ -398,7 +535,17 @@ class SAGEDData:
             return self
 
     def save(self, file_path=None, domain_save=False, suffix=None):
+        if self.use_database:
+            engine = self._get_database_connection()
+            if engine:
+                table_name = self._get_table_name()
+                if suffix:
+                    table_name = f"{table_name}_{suffix}"
+                self._save_to_database(engine, table_name)
+                print(f"Data saved to database table {table_name}")
+                return
 
+        # Original file-based saving logic
         if self.data_tier == 'split_sentences' or self.data_tier == 'questions':
             if file_path is None:
                 if domain_save:
@@ -416,10 +563,8 @@ class SAGEDData:
             else:
                 print("Data is not in a DataFrame format.")
         else:
-            # Generate default file name if not provided
             if file_path is None:
                 file_name = f"{self.domain}_{self.concept}_{self.data_tier}.json"
-                # Ensure the default file path
                 default_path = os.path.join('data', 'customized', self.data_tier)
                 os.makedirs(default_path, exist_ok=True)
                 file_path = os.path.join(default_path, file_name)

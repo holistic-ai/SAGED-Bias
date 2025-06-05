@@ -16,10 +16,24 @@ class Pipeline:
     _domain_benchmark_default_config = {}
     _analytics_config_scheme = {}
     _analytics_default_config = {}
+    _database_config_scheme = {}
+    _database_default_config = {}
 
 
     @classmethod
     def _set_config(cls):
+        cls._database_config_scheme = {
+            'use_database': None,
+            'database_type': None,  # 'sql' or 'json'
+            'database_connection': None,  # Connection string or path
+        }
+        
+        cls._database_default_config = {
+            'use_database': False,
+            'database_type': 'json',
+            'database_connection': 'data/customized/database',
+        }
+
         cls._branching_config_scheme = {
             'branching_pairs': None,
             'direction': None,
@@ -221,6 +235,12 @@ class Pipeline:
             cls._concept_benchmark_default_config.copy(),
             config.copy())
 
+        # Get database configuration
+        database_config = _update_configuration(
+            cls._database_config_scheme.copy(),
+            cls._database_default_config.copy(),
+            config.get('database_config', {}))
+
         # Unpacking keyword_finder section
         keyword_finder_config = configuration['keyword_finder']
         keyword_finder_require, keyword_finder_reading_location, keyword_finder_method, \
@@ -316,12 +336,13 @@ class Pipeline:
 
             if keyword_finder_saving:
                 if keyword_finder_saving_location == 'default':
-                    kw.save()
+                    kw.save(use_database=database_config['use_database'], database_config=database_config)
                 else:
-                    kw.save(file_path=keyword_finder_saving_location)
+                    kw.save(file_path=keyword_finder_saving_location, use_database=database_config['use_database'], database_config=database_config)
 
         elif (not keyword_finder_require) and isinstance(keyword_finder_manual_keywords, list):
-            kw = saged.create_data(domain=domain, concept=demographic_label, data_tier='keywords')
+            kw = saged.create_data(domain=domain, concept=demographic_label, data_tier='keywords', 
+                                 use_database=database_config['use_database'], database_config=database_config)
             for keyword in keyword_finder_manual_keywords:
                 kw = kw.add(keyword)
 
@@ -331,11 +352,15 @@ class Pipeline:
                 filePath = f'data/customized/keywords/{domain}_{demographic_label}_keywords.json'
                 kw = saged.load_file(domain=domain, concept=demographic_label,
                                      file_path=filePath,
-                                     data_tier='keywords')
+                                     data_tier='keywords',
+                                     use_database=database_config['use_database'],
+                                     database_config=database_config)
             else:
                 filePath = keyword_finder_reading_location
                 kw = saged.load_file(domain=domain, concept=demographic_label,
-                                     file_path=filePath, data_tier='keywords')
+                                     file_path=filePath, data_tier='keywords',
+                                     use_database=database_config['use_database'],
+                                     database_config=database_config)
 
             if kw != None:
                 print(f'Keywords loaded from {filePath}')
@@ -354,20 +379,24 @@ class Pipeline:
 
             if source_finder_saving:
                 if source_finder_saving_location == 'default':
-                    sa.save()
+                    sa.save(use_database=database_config['use_database'], database_config=database_config)
                 else:
-                    sa.save(file_path=source_finder_saving_location)
+                    sa.save(file_path=source_finder_saving_location, use_database=database_config['use_database'], database_config=database_config)
         elif scraper_require:
             filePath = ""
             if source_finder_reading_location == 'default':
                 filePath = f'data/customized/source_finder/{domain}_{demographic_label}_source_finder.json'
                 sa = saged.load_file(domain=domain, concept=demographic_label,
                                      file_path=filePath,
-                                     data_tier='source_finder')
+                                     data_tier='source_finder',
+                                     use_database=database_config['use_database'],
+                                     database_config=database_config)
             else:
                 filePath = source_finder_reading_location
                 sa = saged.load_file(domain=domain, concept=demographic_label,
-                                     file_path=source_finder_reading_location, data_tier='source_finder')
+                                     file_path=source_finder_reading_location, data_tier='source_finder',
+                                     use_database=database_config['use_database'],
+                                     database_config=database_config)
 
             if sa != None:
                 print(f'...Source info loaded from {filePath}...')
@@ -383,22 +412,26 @@ class Pipeline:
 
             if scraper_saving:
                 if scraper_saving_location == 'default':
-                    sc.save()
+                    sc.save(use_database=database_config['use_database'], database_config=database_config)
                 else:
-                    sc.save(file_path=scraper_saving_location)
+                    sc.save(file_path=scraper_saving_location, use_database=database_config['use_database'], database_config=database_config)
         elif prompt_assembler_require:
             filePath = ""
             if scraper_reading_location == 'default':
                 filePath = f'data/customized/scraped_sentences/{domain}_{demographic_label}_scraped_sentences.json'
                 sc = saged.load_file(domain=domain, concept=demographic_label,
                                      file_path=filePath,
-                                     data_tier='scraped_sentences')
+                                     data_tier='scraped_sentences',
+                                     use_database=database_config['use_database'],
+                                     database_config=database_config)
                 print(
                     f'Scraped sentences loaded from data/customized/scraped_sentences/{domain}_{demographic_label}_scraped_sentences.json')
             else:
                 filePath = scraper_reading_location
                 sc = saged.load_file(domain=domain, concept=demographic_label, file_path=scraper_reading_location,
-                                     data_tier='scraped_sentences')
+                                     data_tier='scraped_sentences',
+                                     use_database=database_config['use_database'],
+                                     database_config=database_config)
                 print(f'Scraped sentences loaded from {scraper_reading_location}')
 
             if sc != None:
@@ -421,9 +454,9 @@ class Pipeline:
         pm_result = pm_result.sub_sample(prompt_assembler_max_sample_number, floor=True,
                                          saged_format=True)  ### There is likely a bug
         if prompt_assembler_saving_location == 'default':
-            pm_result.save()
+            pm_result.save(use_database=database_config['use_database'], database_config=database_config)
         else:
-            pm_result.save(file_path=prompt_assembler_saving_location)
+            pm_result.save(file_path=prompt_assembler_saving_location, use_database=database_config['use_database'], database_config=database_config)
 
         print(f'Benchmark building for {demographic_label} completed.')
         print('\n=====================================================\n')
@@ -483,7 +516,15 @@ class Pipeline:
             cls._domain_benchmark_default_config.copy(),
             config.copy())
 
-        domain_benchmark = saged.create_data(domain=domain, concept='all', data_tier='split_sentences')
+        # Get database configuration
+        database_config = _update_configuration(
+            cls._database_config_scheme.copy(),
+            cls._database_default_config.copy(),
+            config.get('database_config', {}))
+
+        domain_benchmark = saged.create_data(domain=domain, concept='all', data_tier='split_sentences',
+                                           use_database=database_config['use_database'],
+                                           database_config=database_config)
         for concept in concept_list:
             cat_result = cls.build_concept_benchmark(domain, concept, concept_specified_configuration[concept])
             print(f'Benchmark building for {concept} completed.')
@@ -491,20 +532,29 @@ class Pipeline:
 
             if configuration['saving']:
                 if configuration['saving_location'] == 'default':
-                    domain_benchmark.save()
+                    domain_benchmark.save(use_database=database_config['use_database'],
+                                        database_config=database_config)
                 else:
-                    domain_benchmark.save(file_path=configuration['saving_location'])
+                    domain_benchmark.save(file_path=configuration['saving_location'],
+                                        use_database=database_config['use_database'],
+                                        database_config=database_config)
 
         if configuration['branching']:
-            empty_ss = saged.create_data(concept='merged', domain=domain, data_tier='scraped_sentences')
+            empty_ss = saged.create_data(concept='merged', domain=domain, data_tier='scraped_sentences',
+                                       use_database=database_config['use_database'],
+                                       database_config=database_config)
             pmr = PromptMaker(empty_ss)
             pmr.output_df = domain_benchmark.data
             domain_benchmark = pmr.branching(branching_config=configuration['branching_config'])
             if configuration['saving']:
                 if configuration['saving_location'] == 'default':
-                    domain_benchmark.save(suffix='branching')
+                    domain_benchmark.save(suffix='branching',
+                                        use_database=database_config['use_database'],
+                                        database_config=database_config)
                 else:
-                    domain_benchmark.save(file_path=configuration['saving_location'])
+                    domain_benchmark.save(file_path=configuration['saving_location'],
+                                        use_database=database_config['use_database'],
+                                        database_config=database_config)
 
         return domain_benchmark
 
