@@ -33,7 +33,7 @@ jobs:
       - name: Set up environment
         run: |
           uv venv --python 3.10
-          uv sync
+          uv sync --extra testing
 
       # Run tests
       - name: Run tests
