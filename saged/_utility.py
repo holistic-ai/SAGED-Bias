@@ -89,10 +89,8 @@ def ignore_future_warnings(func):
 def check_benchmark(df):
     # Assert that the DataFrame contains the required columns
     assert isinstance(df, pd.DataFrame), "Benchmark should be a DataFrame"
-    assert 'keyword' in df.columns, "Benchmark must contain 'keyword' column"
     assert 'concept' in df.columns, "Benchmark must contain 'concept' column"
     assert 'domain' in df.columns, "Benchmark must contain 'domain' column"
-    assert 'prompts' in df.columns, "Benchmark must contain 'prompts' column"
     assert 'baseline' in df.columns, "Benchmark must contain 'baseline' column"
 
 

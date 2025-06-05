@@ -13,15 +13,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Checkout the repository
-    - name: Checkout code
+      # Checkout the repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-    # Set up Python environment
-    - name: Set up Python
+      # Set up Python environment
+      - name: Set up Python
         uses: actions/setup-python@v5
-      with:
-        python-version: "3.10"
+        with:
+          python-version: "3.10"
 
       # Install uv
       - name: Install uv
@@ -31,13 +31,13 @@ jobs:
 
       # Set up virtual environment and install dependencies
       - name: Set up environment
-      run: |
+        run: |
           uv venv --python 3.10
           uv sync
 
-    # Run tests
-    - name: Run tests
-      run: |
+      # Run tests
+      - name: Run tests
+        run: |
           uv run pytest tests/ --cov=saged --cov-report=xml
 
       # Upload coverage to Codecov (optional)

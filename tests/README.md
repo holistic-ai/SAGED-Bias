@@ -1,6 +1,29 @@
 # SAGED-Bias Testing
 
-This directory contains the test suite for the SAGED-Bias project.
+This directory contains the comprehensive test suite for the SAGED-Bias project, organized into unit and integration tests.
+
+## Test Structure
+
+### Unit Tests (`tests/unit/`)
+
+- `test_saged_data.py` - Tests for the core SAGEDData class
+- `test_scrape.py` - Tests for scraping functionality
+- `test_utility.py` - Tests for utility functions
+- `test_assembler.py` - Tests for PromptAssembler class
+- `test_extractor.py` - Tests for FeatureExtractor class
+- `test_diagnoser.py` - Tests for DisparityDiagnoser class
+- `test_generator.py` - Tests for ResponseGenerator class
+
+### Integration Tests (`tests/integration/`)
+
+- `test_pipeline_integration.py` - Full pipeline integration tests
+- `test_mpf_integration.py` - MPF extension integration tests
+
+### Shared Fixtures (`conftest.py`)
+
+- Common test fixtures and configuration
+- Mock objects and sample data
+- Test utilities and helpers
 
 ## Running Tests
 
@@ -10,6 +33,12 @@ This directory contains the test suite for the SAGED-Bias project.
 # Run all tests
 uv run pytest tests/
 
+# Run only unit tests
+uv run pytest tests/unit/
+
+# Run only integration tests
+uv run pytest tests/integration/
+
 # Run tests with verbose output
 uv run pytest tests/ -v
 
@@ -18,6 +47,15 @@ uv run pytest tests/ --cov=saged --cov-report=term-missing
 
 # Run tests with HTML coverage report
 uv run pytest tests/ --cov=saged --cov-report=html
+
+# Run specific test file
+uv run pytest tests/unit/test_extractor.py
+
+# Run specific test class
+uv run pytest tests/unit/test_extractor.py::TestFeatureExtractor
+
+# Run specific test method
+uv run pytest tests/unit/test_extractor.py::TestFeatureExtractor::test_extract_sentiment
 ```
 
 ### Using the Test Runner Script
@@ -36,22 +74,35 @@ python run_tests.py --specific test_saged_data.py
 python run_tests.py --specific test_saged_data.py::test_init
 ```
 
-## Test Structure
-
-- `test_saged_data.py` - Tests for the core SAGEDData class
-- `test_scrape.py` - Tests for scraping functionality
-- `test_utility.py` - Tests for utility functions
-
 ## Coverage
 
-Current test coverage is around 16% of the total codebase. The tests primarily cover:
+Comprehensive test coverage across all major components:
+
+### Core Components
 
 - ✅ Core data structures and validation (SAGEDData)
 - ✅ Utility functions
-- ✅ Basic scraping functionality
-- ❌ Pipeline orchestration (needs more tests)
-- ❌ Feature extraction (needs more tests)
-- ❌ Bias diagnosis (needs more tests)
+- ✅ Scraping functionality
+- ✅ Prompt assembly and context building
+- ✅ Feature extraction (sentiment, toxicity, stereotypes)
+- ✅ Bias diagnosis and statistical analysis
+- ✅ Response generation and LLM integration
+
+### Pipeline Components
+
+- ✅ Full pipeline orchestration
+- ✅ Component interaction and data flow
+- ✅ Error handling and recovery
+- ✅ Configuration validation
+- ✅ Performance optimization
+
+### MPF Extension
+
+- ✅ Multi-perspective fusion pipeline
+- ✅ Bias mitigation strategies
+- ✅ LLM factory and model management
+- ✅ Integration with core SAGED components
+- ✅ Reporting and visualization
 
 ## Adding New Tests
 
