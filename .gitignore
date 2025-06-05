@@ -53,6 +53,8 @@ Thumbs.db
 .coverage*
 htmlcov/
 .pytest_cache/
+coverage.xml
+coverage.json
 
 # Distribution and build files
 *.egg-info/
@@ -68,6 +70,15 @@ external_dependency/*.whl
 *.tmp
 *.temp
 *~
+
+# Results and output directories
+results/run_*/
+results/*.json
+
+# Node modules and build files
+node_modules/
+dist/
+build/
 
 # IDE settings
 .idea/
