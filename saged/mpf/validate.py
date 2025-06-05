@@ -6,7 +6,7 @@ import os
 import json
 from datetime import datetime
 
-from xnation._mitigator import Mitigator
+from ._mitigator import Mitigator
 from saged._diagnoser import DisparityDiagnoser
 
 def load_data(file_path: str) -> pd.DataFrame:

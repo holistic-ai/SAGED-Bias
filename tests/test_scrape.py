@@ -15,13 +15,13 @@ from sentence_transformers import SentenceTransformer
 def valid_saged_data_for_scraper():
     data = SAGEDData.create_data(
         domain="test_domain",
-        category="test_category",
+        concept="test_concept",
         data_tier="scraped_sentences",
         data=[
             {
-                "category": "test_category",
+                "concept": "test_concept",
                 "domain": "test_domain",
-                "category_shared_source": [
+                "concept_shared_source": [
                     {
                         "source_tag": "default",
                         "source_type": "wiki_urls",

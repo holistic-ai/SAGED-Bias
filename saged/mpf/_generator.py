@@ -585,7 +585,7 @@ Please synthesize these responses into a single coherent answer:"""
 """
             
             # Generate final response using the ensemble system prompt
-            from xnation.create_benchmark import create_generation_function
+            from .create_benchmark import create_generation_function
             generation_function = create_generation_function(
                 model_name="qwen-turbo-latest",
                 system_prompt=ensemble_system_prompt

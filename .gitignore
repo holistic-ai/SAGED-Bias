@@ -23,10 +23,18 @@ wheels/
 .installed.cfg
 *.egg
 
+# Poetry (legacy - now using uv)
+poetry.lock
+
 # Virtual Environment
 venv/
 env/
 ENV/
+.venv/
+
+# uv
+.uv/
+uv.lock
 
 # IDE
 .idea/
@@ -43,12 +51,23 @@ Thumbs.db
 
 # Test coverage reports
 .coverage*
+htmlcov/
+.pytest_cache/
 
 # Distribution and build files
 *.egg-info/
 
 # Dependency files
 external_dependency/*.whl
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Temporary files
+*.tmp
+*.temp
+*~
 
 # IDE settings
 .idea/

@@ -10,7 +10,7 @@ from datetime import datetime
 try:
     from ._plotter import Plotter
 except ImportError:
-    from _plotter import Plotter
+    from ._plotter import Plotter
 
 class Mitigator:
     # ===== Core Initialization and Setup =====
