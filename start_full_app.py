@@ -98,7 +98,8 @@ class AppLauncher:
                 stderr=subprocess.STDOUT,
                 text=True,
                 bufsize=1,
-                universal_newlines=True
+                universal_newlines=True,
+                env={**os.environ, "PYTHONPATH": str(self.backend_dir)}
             )
             
             # Start a thread to monitor backend output
@@ -127,11 +128,27 @@ class AppLauncher:
         print_colored("🎨 Starting frontend server...", Colors.OKBLUE)
         
         try:
+            # Print current working directory and command
+            print_colored(f"Current working directory: {self.frontend_dir}", Colors.OKCYAN)
+            print_colored("Running command: npm run dev", Colors.OKCYAN)
+            
+            # Check if npm is available
+            try:
+                npm_version = subprocess.run(
+                    ["npm", "--version"],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                print_colored(f"NPM version: {npm_version.stdout.strip()}", Colors.OKCYAN)
+            except Exception as e:
+                print_colored(f"Error checking npm version: {e}", Colors.FAIL)
+            
             self.frontend_process = subprocess.Popen(
                 ["npm", "run", "dev"],
                 cwd=self.frontend_dir,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
+                stderr=subprocess.PIPE,  # Capture stderr separately
                 text=True,
                 bufsize=1,
                 universal_newlines=True
@@ -149,11 +166,13 @@ class AppLauncher:
                 print_colored("✅ Frontend server started successfully", Colors.OKGREEN)
                 return True
             else:
-                print_colored("❌ Frontend server failed to start", Colors.FAIL)
+                # Get the error output
+                _, stderr = self.frontend_process.communicate()
+                print_colored(f"❌ Frontend server failed to start. Error: {stderr}", Colors.FAIL)
                 return False
                 
         except Exception as e:
-            print_colored(f"❌ Error starting frontend: {e}", Colors.FAIL)
+            print_colored(f"❌ Error starting frontend: {str(e)}", Colors.FAIL)
             return False
             
     def _monitor_backend_output(self):
