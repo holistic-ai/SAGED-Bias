@@ -2,6 +2,7 @@
 
 [![ArXiv](https://img.shields.io/badge/ArXiv-2409.11149-red)](https://arxiv.org/abs/2409.11149)
 ![License](https://img.shields.io/badge/License-MIT-blue)
+![SAGED Platform](https://img.shields.io/badge/SAGED-Bias%20Analysis-blue) ![Python](https://img.shields.io/badge/python-3.10+-green) ![React](https://img.shields.io/badge/react-18+-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-latest-green)
 
 **Authors**: Xin Guan, Nathaniel Demchak, Saloni Gupta, Ze Wang, Ediz Ertekin Jr., Adriano Koshiyama, Emre Kazim, Zekun Wu  
 **Conference**: COLING 2025 Main Conference  
@@ -11,105 +12,186 @@
 
 ## Overview
 
-SAGED(-Bias) is the first comprehensive benchmarking pipeline designed to detect and mitigate bias in large language models. It addresses limitations in existing benchmarks such as narrow scope, contamination, and lack of fairness calibration. The SAGED pipeline includes the following five core stages:
+SAGED-Bias is the first comprehensive benchmarking pipeline designed to detect and mitigate bias in large language models. It addresses limitations in existing benchmarks such as narrow scope, contamination, and lack of fairness calibration, providing both a powerful Python library and a modern web-based platform for bias analysis.
 
 ![System Diagram](diagrams/pipeline.png)
 
-This diagram illustrates the core stages of the SAGED pipeline:
+### SAGED Pipeline Stages
 
-1. **Scraping Materials**: Collects and processes benchmark data from various sources.
-2. **Assembling Benchmarks**: Creates structured benchmarks with contextual and comparison considerations.
-3. **Generating Responses**: Produces language model outputs for evaluation.
-4. **Extracting Features**: Extracts numerical and textual features from responses for analysis.
-5. **Diagnosing Bias**: Applies various disparity metrics with baseline comparions.
+The SAGED methodology implements a systematic 5-stage approach:
 
----
+1. **🔍 Scraping Materials**: Collects and processes benchmark data from various sources
+2. **📋 Assembling Benchmarks**: Creates structured benchmarks with contextual and comparison considerations
+3. **🤖 Generating Responses**: Produces language model outputs for evaluation
+4. **⚡ Extracting Features**: Extracts numerical and textual features from responses for analysis
+5. **📊 Diagnosing Bias**: Applies various disparity metrics with baseline comparisons
 
-## Installation
+## 🚀 Quick Start
 
-### Install the library from PyPI:
+### Prerequisites
+
+- **Python 3.10+** with pip
+- **Node.js 16+** with npm
+- **Git** for version control
+
+### One-Command Setup
 
 ```bash
-pip install sagedbias
+# Clone and setup everything
+git clone <repository-url>
+cd SAGED-Bias-1
+python setup_dev.sh  # Sets up Python environment and installs dependencies
+cd app/frontend && npm install && cd ../..  # Setup frontend
 ```
 
-### Development Setup
-
-For development and testing, we recommend using `uv` for fast dependency management:
+### Start the Platform
 
 ```bash
-# Install uv
-pip install uv
+python start_full_app.py
+```
 
-# Clone the repository
-git clone https://github.com/holistic-ai/SAGED-Bias.git
-cd SAGED-Bias
+This launches both backend (port 8000) and frontend (port 3000) with a single command.
 
-# Create virtual environment and install dependencies
-uv venv --python 3.10
-uv sync
+### Access Points
 
+- 🌐 **Web Application**: http://localhost:3000
+- 📚 **API Documentation**: http://localhost:8000/docs
+- 🔍 **Health Check**: `python check_status.py`
+
+### Basic Library Usage
+
+```python
+from saged import SAGEDData
+
+# Initialize SAGED with configuration
+saged = SAGEDData(
+    domain="employment",
+    concept="gender",
+    data_tier="lite"
+)
+
+# Create and configure bias test
+saged.create_data()
+saged.set_keywords(["engineer", "nurse", "CEO", "teacher"])
+
+# Run analysis pipeline
+results = saged.run_full_pipeline()
+
+# Access bias metrics
+print(f"Bias detected: {results['bias_score']}")
+print(f"Affected groups: {results['disparity_groups']}")
+```
+
+## 🏗️ Architecture Overview
+
+```mermaid
+graph TB
+    A[Web Frontend] --> B[FastAPI Backend]
+    B --> C[SQLite Database]
+    B --> D[SAGED Core]
+    D --> E[Bias Analysis Pipeline]
+    E --> F[Results & Visualizations]
+```
+
+| Component      | Technology                 | Purpose                   | Documentation                                |
+| -------------- | -------------------------- | ------------------------- | -------------------------------------------- |
+| **Frontend**   | React + TypeScript + Vite  | User Interface            | [📖 Frontend README](app/frontend/README.md) |
+| **Backend**    | FastAPI + SQLAlchemy       | REST API & Business Logic | [📖 Backend README](app/backend/README.md)   |
+| **SAGED Core** | Python Library             | Bias Detection Pipeline   | [📖 SAGED README](saged/README.md)           |
+| **Tests**      | pytest + Integration Tests | Quality Assurance         | [📖 Testing README](tests/README.md)         |
+| **Tutorials**  | Jupyter Notebooks          | Learning & Examples       | [📖 Tutorials README](tutorials/README.md)   |
+
+## 🎯 Key Features
+
+### 🔍 **Bias Detection Pipeline**
+
+- **5-Stage SAGED Process**: Scrape → Assemble → Generate → Extract → Diagnose
+- **6 Bias Categories**: Nationality, Gender, Race, Religion, Profession, Age
+- **Multiple Data Tiers**: From lite testing to comprehensive analysis
+
+### 🖥️ **Web Platform**
+
+- **Interactive Dashboard**: Real-time metrics and project overview
+- **Benchmark Management**: Create, configure, and manage bias tests
+- **Experiment Execution**: Run analyses with progress monitoring
+- **Results Visualization**: Charts, statistics, and comparative analysis
+
+### 🔧 **Developer Experience**
+
+- **REST API**: Full programmatic access
+- **Real-time Updates**: WebSocket-based progress tracking
+- **Extensible Architecture**: Plugin-based bias category support
+- **Comprehensive Testing**: Unit, integration, and end-to-end tests
+
+## 📊 Supported Bias Analysis
+
+| Category        | Description                  | Examples                                         |
+| --------------- | ---------------------------- | ------------------------------------------------ |
+| **Nationality** | Geographic and cultural bias | Country stereotypes, cultural assumptions        |
+| **Gender**      | Gender-based discrimination  | Binary/non-binary bias, professional stereotypes |
+| **Race**        | Racial and ethnic bias       | Skin color, ethnic background bias               |
+| **Religion**    | Religious affiliation bias   | Faith-based stereotypes and discrimination       |
+| **Profession**  | Occupational stereotypes     | Job role assumptions, salary expectations        |
+| **Age**         | Age-related bias             | Ageism in different contexts                     |
+
+## 🛠️ Development Workflows
+
+### For Researchers
+
+```bash
+# Start with tutorials
+cd tutorials && jupyter notebook
+# Run existing analyses
+python -m saged.examples.run_analysis
+```
+
+### For Developers
+
+```bash
 # Run tests
-uv run pytest tests/
+python run_tests.py
+# API development
+cd app/backend && python -m uvicorn main:app --reload
 ```
 
-## Quick Start
+### For UI/UX
 
-### Basic Usage
-
-```python
-from saged import Pipeline
-from saged import Scraper, KeywordFinder, SourceFinder
-from saged import PromptAssembler
-from saged import FeatureExtractor
-from saged import DisparityDiagnoser
-
-# Build a bias benchmark
-config = {
-    'categories': ['nationality'],
-    'branching': True,
-    'shared_config': {
-        'keyword_finder': {'require': True},
-        'source_finder': {'require': True},
-        'scraper': {'require': True},
-        'prompt_assembler': {'require': True}
-    }
-}
-
-benchmark = Pipeline.build_benchmark('demographics', config)
+```bash
+# Frontend development
+cd app/frontend && npm run dev
+# Component development with hot reload
 ```
 
-### Research Extensions (MPF)
-
-For advanced research using Multi-Perspective Fusion (MPF):
-
-```python
-from saged.mpf import mpf_pipeline, Mitigator, LLMFactory
-
-# MPF bias mitigation
-mitigator = Mitigator()
-results = mpf_pipeline(benchmark_data, mitigator)
-```
-
-## Repository Structure
+## 📁 Project Structure
 
 ```
-SAGED-Bias/
-├── saged/                    # Core SAGED pipeline
-│   ├── mpf/                  # MPF extension (Multi-Perspective Fusion)
-│   ├── _pipeline.py          # Main pipeline
-│   ├── _extractor.py         # Feature extraction
-│   └── ...                   # Other core modules
-├── tests/                    # Test suite (21 tests)
-├── tutorials/                # Jupyter notebook tutorials
-├── examples/                 # Usage examples
-├── scripts/                  # Utility scripts
-└── MPF_icml/                 # ICML 2025 paper materials
+SAGED-Bias-1/
+├── 📱 app/
+│   ├── 🔧 backend/         # FastAPI REST API
+│   └── 🎨 frontend/        # React TypeScript UI
+├── 🧠 saged/              # Core bias analysis library
+├── 🧪 tests/              # Comprehensive test suite
+├── 📚 tutorials/          # Jupyter notebook examples
+├── 🔧 scripts/            # Utility and setup scripts
+├── 📊 results/            # Analysis outputs
+├── 📈 diagrams/           # Architecture diagrams
+└── 🔗 examples/           # Integration examples
 ```
 
-## Testing
+## 🚦 Status & Health
 
-Run the test suite:
+```bash
+# Check all services
+python check_status.py
+
+# Individual checks
+curl http://localhost:8000/health  # Backend health
+curl http://localhost:3000         # Frontend availability
+```
+
+## 🧪 Testing
+
+Run the comprehensive test suite:
 
 ```bash
 # Using uv (recommended)
@@ -122,22 +204,41 @@ uv run pytest tests/ --cov=saged
 python run_tests.py --verbose --coverage
 ```
 
-## Maintenance
+## 🤝 Contributing
 
-Clean build artifacts and temporary files:
+1. **Fork** the repository
+2. **Read** component-specific README files
+3. **Run** tests: `python run_tests.py`
+4. **Create** feature branch: `git checkout -b feature/amazing-feature`
+5. **Commit** changes: `git commit -m 'Add amazing feature'`
+6. **Push** to branch: `git push origin feature/amazing-feature`
+7. **Open** Pull Request
 
-```bash
-# Preview cleanup
-python scripts/cleanup.py --dry-run
+## 📄 Documentation
 
-# Clean cache files and build artifacts
-python scripts/cleanup.py
+| Topic                | Location                       | Description                   |
+| -------------------- | ------------------------------ | ----------------------------- |
+| **API Reference**    | `/docs` (when backend running) | Interactive API documentation |
+| **Component Guides** | `*/README.md`                  | Detailed setup and usage      |
+| **Tutorials**        | `tutorials/`                   | Step-by-step examples         |
+| **Architecture**     | `diagrams/`                    | System design diagrams        |
+| **Changelog**        | `CHANGELOG.md`                 | Version history and updates   |
 
-# Clean everything including coverage reports
-python scripts/cleanup.py --all
-```
+## 🆘 Troubleshooting
 
-## Citation
+| Issue                    | Solution                                 |
+| ------------------------ | ---------------------------------------- |
+| **Port conflicts**       | Change ports in `start_full_app.py`      |
+| **Database issues**      | Check `app/backend/data/db/` permissions |
+| **Import errors**        | Run `pip install -r requirements.txt`    |
+| **Frontend build fails** | Delete `node_modules`, run `npm install` |
+| **Tests failing**        | Check `tests/README.md` for requirements |
+
+## 📜 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 📚 Citation
 
 If you use SAGED in your work, please cite the following paper:
 
@@ -151,6 +252,20 @@ If you use SAGED in your work, please cite the following paper:
 }
 ```
 
-## License
+## 🔗 Links
 
-SAGED-bias is released under the MIT License.
+- **Research Paper**: [ArXiv:2409.11149](https://arxiv.org/abs/2409.11149)
+- **API Schema**: Available at `/openapi.json` when backend is running
+- **Component Documentation**: See individual README files in each directory
+- **Issue Tracker**: [GitHub Issues](../../issues)
+
+---
+
+**Quick Commands Summary:**
+
+```bash
+python start_full_app.py    # Start everything
+python check_status.py      # Check health
+python run_tests.py         # Run all tests
+python setup_dev.sh         # Development setup
+```
