@@ -10,14 +10,19 @@ from ..schemas.build_config import (
 )
 from typing import List, Optional
 from sqlalchemy.exc import SQLAlchemyError
+import logging
+import json
+
+logger = logging.getLogger(__name__)
 
 class DatabaseService:
     def __init__(self):
         # Create data directory if it doesn't exist
         os.makedirs("data/db", exist_ok=True)
         
-        # SQLite database URL
-        self.database_url = "sqlite:///./data/db/saged_app.db"
+        # SQLite database URL with absolute path
+        db_path = os.path.abspath("data/db/saged_app.db")
+        self.database_url = f"sqlite:///{db_path}"
         
         # Create engine
         self.engine = create_engine(
@@ -118,7 +123,7 @@ class DatabaseService:
         """Get database configuration for SAGED"""
         return {
             'use_database': True,
-            'database_type': 'sqlite',
+            'database_type': 'sql',
             'database_connection': self.database_url
         }
     
@@ -260,4 +265,43 @@ class DatabaseService:
             scraped_sentences=self.get_latest_scraped_sentences(domain),
             replacement_description=self.get_latest_replacement_description(domain),
             benchmark=self.get_latest_benchmark(domain)
-        ) 
+        )
+
+    def save_benchmark_metadata(self, table_name: str, data: dict):
+        """Save benchmark metadata to the specified table"""
+        try:
+            # Create the table if it doesn't exist
+            with self.engine.connect() as conn:
+                conn.execute(text(f"""
+                    CREATE TABLE IF NOT EXISTS {table_name} (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        domain TEXT NOT NULL,
+                        data JSON,
+                        table_names JSON,
+                        configuration JSON,
+                        database_config JSON,
+                        time_stamp TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """))
+                
+                # Convert dictionary fields to JSON strings
+                params = {
+                    'domain': data['domain'],
+                    'data': json.dumps(data['data']) if data['data'] else None,
+                    'table_names': json.dumps(data['table_names']),
+                    'configuration': json.dumps(data['configuration']),
+                    'database_config': json.dumps(data['database_config']),
+                    'time_stamp': data['time_stamp']
+                }
+                
+                # Insert the metadata
+                conn.execute(
+                    text(f"INSERT INTO {table_name} (domain, data, table_names, configuration, database_config, time_stamp) VALUES (:domain, :data, :table_names, :configuration, :database_config, :time_stamp)"),
+                    params
+                )
+                conn.commit()
+                logger.info(f"Successfully saved benchmark metadata to {table_name}")
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to save benchmark metadata: {str(e)}")
+            raise Exception(f"Failed to save benchmark metadata: {str(e)}") 

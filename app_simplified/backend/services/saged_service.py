@@ -7,6 +7,7 @@ import logging
 import sys
 import io
 from contextlib import contextmanager
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(
@@ -14,6 +15,9 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger('SagedService')
+
+# Silence wikipediaapi logs
+logging.getLogger('wikipediaapi').setLevel(logging.WARNING)
 
 class SagedService:
     def __init__(self):
@@ -126,28 +130,35 @@ class SagedService:
             
             shared_config = config_dict['shared_config']
             
+            # Get all table names once
+            keywords_table = self.db_service.get_table_name('keywords', domain)
+            source_finder_table = self.db_service.get_table_name('source_finder', domain)
+            scraped_sentences_table = self.db_service.get_table_name('scraped_sentences', domain)
+            benchmark_table = self.db_service.get_table_name('benchmark', domain)
+            replacement_description_table = self.db_service.get_table_name('replacement_description', domain) if config_dict.get('branching', False) else None
+            
             # Update keyword finder config to use database table name
             if 'keyword_finder' not in shared_config:
                 shared_config['keyword_finder'] = {}
-            shared_config['keyword_finder']['saving_location'] = self.db_service.get_table_name('keywords', domain)
+            shared_config['keyword_finder']['saving_location'] = keywords_table
             
             # Update source finder config to use database table name
             if 'source_finder' not in shared_config:
                 shared_config['source_finder'] = {}
-            shared_config['source_finder']['saving_location'] = self.db_service.get_table_name('source_finder', domain)
+            shared_config['source_finder']['saving_location'] = source_finder_table
             
             # Update scraper config to use database table name
             if 'scraper' not in shared_config:
                 shared_config['scraper'] = {}
-            shared_config['scraper']['saving_location'] = self.db_service.get_table_name('scraped_sentences', domain)
+            shared_config['scraper']['saving_location'] = scraped_sentences_table
             
             # Update prompt assembler config to use database table name
             if 'prompt_assembler' not in shared_config:
                 shared_config['prompt_assembler'] = {}
-            shared_config['prompt_assembler']['saving_location'] = self.db_service.get_table_name('benchmark', domain)
+            shared_config['prompt_assembler']['saving_location'] = benchmark_table
             
             # Update main saving location to use database table name
-            config_dict['saving_location'] = self.db_service.get_table_name('benchmark', domain)
+            config_dict['saving_location'] = benchmark_table
             
             # Handle branching configuration if enabled
             if config_dict.get('branching', False):
@@ -157,7 +168,7 @@ class SagedService:
                 
                 # Update replacement description saving location for branching
                 if 'replacement_description_saving_location' in config_dict['branching_config']:
-                    config_dict['branching_config']['replacement_description_saving_location'] = self.db_service.get_table_name('replacement_description', domain)
+                    config_dict['branching_config']['replacement_description_saving_location'] = replacement_description_table
             
             # Print the config dictionary
             logger.info("Config dictionary:")
@@ -173,12 +184,23 @@ class SagedService:
             logger.debug("Processing benchmark results")
             result_dict = {
                 "domain": domain,
-                "data": benchmark_result.data.to_dict() if hasattr(benchmark_result, 'data') else None
+                "data": benchmark_result.data.to_dict() if hasattr(benchmark_result, 'data') else None,
+                "table_names": {
+                    "keywords": keywords_table,
+                    "source_finder": source_finder_table,
+                    "scraped_sentences": scraped_sentences_table,
+                    "benchmark": benchmark_table,
+                    "replacement_description": replacement_description_table
+                },
+                "configuration": config_dict,
+                "database_config": self.db_service.get_database_config(),
+                "time_stamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
             
-            # Save the benchmark data to our database
-            logger.info("Saving benchmark data to database")
-            self.db_service.save_benchmark(domain, result_dict)
+            # Save the benchmark metadata to our database
+            logger.info("Saving benchmark metadata to database")
+            metadata_table_name = f"metadata_benchmark_{domain}_{benchmark_table}"
+            self.db_service.save_benchmark_metadata(metadata_table_name, result_dict)
             
             # Cleanup database after successful operation
             self._cleanup_database()

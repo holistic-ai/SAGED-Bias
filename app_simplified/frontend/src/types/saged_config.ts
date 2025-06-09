@@ -51,24 +51,9 @@ export interface PromptAssemblerConfig {
     answer_check: boolean;      // Used in PromptAssemblerConfig for answer validation (default: false)
     saving_location: string;   // Used in PromptAssemblerConfig for save location (default: "default")
     max_benchmark_length: number; // Used in PromptAssemblerConfig for maximum number of prompts (default: 500)
-    branching: {               // Used in PromptAssemblerBranching for branching logic
-        require: boolean;       // Used in PromptAssemblerConfig to enable/disable branching (default: false)
-        method: string;         // Used in PromptAssemblerBranching for branching method (default: "tree")
-        branching_pairs: string; // Used in PromptAssemblerBranching for storing concept pairs as JSON (default: "")
-        direction: string;      // Used in PromptAssemblerBranching for direction (default: "forward")
-        replacement_descriptor_require: boolean; // Used in PromptAssemblerBranching for descriptors (default: false)
-        descriptor_threshold: string; // Used in PromptAssemblerBranching for threshold (default: "0.5")
-        descriptor_embedding_model: string; // Used in PromptAssemblerBranching for model (default: "paraphrase-Mpnet-base-v2")
-        descriptor_distance: string; // Used in PromptAssemblerBranching for distance metric (default: "cosine")
-        replacement_description: Record<string, any>; // Used in PromptAssemblerBranching for descriptions (default: {})
-        replacement_description_saving: boolean; // Used in PromptAssemblerBranching for save settings (default: true)
-        replacement_description_saving_location: string; // Used in PromptAssemblerBranching for save location (default: "default")
-        counterfactual_baseline: boolean; // Used in PromptAssemblerBranching for baseline (default: false)
-    };
 }
 
 export interface ConceptBenchmarkConfig {
-    database_config: DatabaseConfig;      // Used in DomainConfig for database settings (all defaults)
     keyword_finder: KeywordFinderConfig;  // Used in KeywordFinderConfig for keyword settings
     source_finder: SourceFinderConfig;    // Used in SourceFinderConfig for source settings
     scraper: ScraperConfig;              // Used in SourceSelection for scraping settings (all defaults)
@@ -135,12 +120,6 @@ export const defaultConfig: DomainBenchmarkConfig = {
     concepts: [],
     branching: false,
     shared_config: {
-        database_config: {
-            use_database: false,
-            database_type: "sqlite",
-            database_connection: "",
-            table_prefix: "saged_"
-        },
         keyword_finder: {
             require: false,
             reading_location: "default",
@@ -166,32 +145,18 @@ export const defaultConfig: DomainBenchmarkConfig = {
             scrape_backlinks: 0
         },
         scraper: {
-            require: false,
+            require: true,
             reading_location: "default",
             saving: true,
             method: "wiki",
             saving_location: "default"
         },
         prompt_assembler: {
-            require: false,
+            require: true,
             method: "split_sentences",
             answer_check: false,
             saving_location: "default",
             max_benchmark_length: 500,
-            branching: {
-                require: false,
-                method: "tree",
-                branching_pairs: "",
-                direction: "forward",
-                replacement_descriptor_require: false,
-                descriptor_threshold: "0.5",
-                descriptor_embedding_model: "paraphrase-Mpnet-base-v2",
-                descriptor_distance: "cosine",
-                replacement_description: {},
-                replacement_description_saving: true,
-                replacement_description_saving_location: "default",
-                counterfactual_baseline: false
-            }
         }
     },
     concept_specified_config: {},
@@ -199,13 +164,13 @@ export const defaultConfig: DomainBenchmarkConfig = {
     saving_location: "default",
     database_config: {
         use_database: false,
-        database_type: "sqlite",
+        database_type: "sql",
         database_connection: "",
-        table_prefix: "saged_"
+        table_prefix: ""
     },
     branching_config: {
-        branching_pairs: "",
-        direction: "forward",
+        branching_pairs: "not_all",
+        direction: "not_both",
         replacement_descriptor_require: false,
         descriptor_threshold: "Auto",
         descriptor_embedding_model: "paraphrase-Mpnet-base-v2",

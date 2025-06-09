@@ -4,9 +4,9 @@ from datetime import datetime
 
 class DatabaseConfig(BaseModel):
     use_database: bool = True
-    database_type: str = "sqlite"
+    database_type: str = "sql"
     database_connection: str = "sqlite:///./data/db/saged_app.db"
-    table_prefix: str = "saged_"
+    table_prefix: str = ""
 
 class KeywordFinderConfig(BaseModel):
     require: bool = True
@@ -51,7 +51,6 @@ class PromptAssemblerConfig(BaseModel):
     branching: Optional[Dict[str, Any]] = None
 
 class ConceptBenchmarkConfig(BaseModel):
-    database_config: DatabaseConfig = DatabaseConfig()
     keyword_finder: KeywordFinderConfig = KeywordFinderConfig()
     source_finder: SourceFinderConfig = SourceFinderConfig()
     scraper: ScraperConfig = ScraperConfig()
@@ -156,4 +155,15 @@ class BenchmarkResponse(BaseModel):
     status: str
     message: str
     data: Optional[Dict[str, Any]] = None
-    database_data: Optional[AllDataTiersResponse] = None 
+    database_data: Optional[AllDataTiersResponse] = None
+
+class BenchmarkMetadata(BaseModel):
+    """Schema for benchmark metadata stored in the database"""
+    id: Optional[int]
+    domain: str
+    data: Optional[Dict[str, Any]]
+    table_names: Dict[str, str]
+    configuration: Dict[str, Any]
+    database_config: Dict[str, Any]
+    time_stamp: str
+    created_at: Optional[datetime] 

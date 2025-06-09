@@ -538,6 +538,7 @@ class Pipeline:
             sc.use_database = database_config['use_database']
             sc.database_config = database_config
 
+        if prompt_assembler_require:
             pm_result = None
             if prompt_assembler_method == 'split_sentences':
                 pm = PromptMaker(sc)
