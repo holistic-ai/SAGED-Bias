@@ -2,12 +2,14 @@ from typing import Dict, Any, Optional
 from saged import Pipeline
 from ..schemas.build_config import DomainBenchmarkConfig, BenchmarkResponse
 from .database_service import DatabaseService
+from .model_service import ModelService
 from sqlalchemy.exc import SQLAlchemyError
 import logging
 import sys
 import io
 from contextlib import contextmanager
 from datetime import datetime
+import copy
 
 # Configure logging
 logging.basicConfig(
@@ -20,10 +22,11 @@ logger = logging.getLogger('SagedService')
 logging.getLogger('wikipediaapi').setLevel(logging.WARNING)
 
 class SagedService:
-    def __init__(self):
+    def __init__(self, model_name: str = "qwen-turbo-latest"):
         logger.info("Initializing SagedService")
         self.pipeline = Pipeline()
         self.db_service = DatabaseService()
+        self.model_service = ModelService(model_name=model_name)
         logger.info("SagedService initialized successfully")
     
     @contextmanager
@@ -170,6 +173,22 @@ class SagedService:
                 if 'replacement_description_saving_location' in config_dict['branching_config']:
                     config_dict['branching_config']['replacement_description_saving_location'] = replacement_description_table
             
+            # Check if we need to use question generation
+            generation_function = None
+            model_info = None
+            if 'prompt_assembler' in shared_config and shared_config['prompt_assembler'].get('method') == 'questions':
+                logger.info("Question generation method detected, creating generation function")
+                # Create generation function with default model and system prompt
+                generation_function = self.model_service.create_generation_function()
+                # Store model information for metadata
+                model_info = {
+                    'model_name': self.model_service.model_name,
+                    'is_azure': self.model_service.is_azure,
+                    'deployment_name': self.model_service.model_name if self.model_service.is_azure else None
+                }
+                # Add the generation function to the prompt assembler config
+                shared_config['prompt_assembler']['generation_function'] = generation_function
+            
             # Print the config dictionary
             logger.info("Config dictionary:")
             logger.info(config_dict)
@@ -179,6 +198,14 @@ class SagedService:
             with self._capture_pipeline_output():
                 benchmark_result = self.pipeline.build_benchmark(domain=domain, config=config_dict)
             logger.info("SAGED pipeline benchmark build completed")
+            
+            # Create a copy of config_dict for metadata storage
+            metadata_config = copy.deepcopy(config_dict)
+            # Replace generation function with model info in the metadata config
+            if generation_function and 'prompt_assembler' in metadata_config['shared_config']:
+                metadata_config['shared_config']['prompt_assembler'].pop('generation_function', None)
+                if model_info:
+                    metadata_config['shared_config']['prompt_assembler']['generation_function'] = model_info
             
             # Get the data from the benchmark result
             logger.debug("Processing benchmark results")
@@ -192,7 +219,7 @@ class SagedService:
                     "benchmark": benchmark_table,
                     "replacement_description": replacement_description_table
                 },
-                "configuration": config_dict,
+                "configuration": metadata_config,  # Use the cleaned config for metadata
                 "database_config": self.db_service.get_database_config(),
                 "time_stamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }

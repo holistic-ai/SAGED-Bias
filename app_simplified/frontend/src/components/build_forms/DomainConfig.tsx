@@ -7,6 +7,7 @@ import { Button } from '../ui/button';
 import { Alert } from '../ui/alert';
 import { FormSwitch } from '../ui/form-switch';
 import KeywordFinderConfig from './KeywordFinderConfig';
+import { API_ENDPOINTS } from '../../config/api';
 
 interface DomainConfigProps {
     config: DomainBenchmarkConfig;

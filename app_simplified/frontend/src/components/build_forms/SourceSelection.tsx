@@ -6,6 +6,9 @@ import { FormSwitch } from '../ui/form-switch';
 import SourceFinderConfig from './SourceFinderConfig';
 import FileUploadList from '../ui/file-upload-list';
 import { ConceptSelector } from '../ui/concept-selector';
+import axios from 'axios';
+import { Alert } from '../ui/alert';
+import { API_ENDPOINTS } from '../../config/api';
 
 interface SourceSelectionProps {
     config: DomainBenchmarkConfig;
@@ -15,6 +18,7 @@ interface SourceSelectionProps {
 interface SourceWithConcepts {
     file: File;
     concepts: string[];
+    uploadedPath?: string;
 }
 
 const SourceSelection: React.FC<SourceSelectionProps> = ({ config, onConfigChange }) => {
@@ -24,15 +28,45 @@ const SourceSelection: React.FC<SourceSelectionProps> = ({ config, onConfigChang
     const [showSourceFinder, setShowSourceFinder] = useState(false);
     // Local state to track which source is being edited
     const [selectedSource, setSelectedSource] = useState<number | null>(null);
+    const [uploadError, setUploadError] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
 
-    // Handles new file uploads, initializing them with all concepts selected
-    const handleFilesChange = (files: File[]) => {
-        // For new files, add them with all concepts selected by default
-        const newSources = files.map(file => ({
-            file,
-            concepts: [...config.concepts]
-        }));
-        setSources(newSources);
+    // Handles new file uploads, uploading them to the backend
+    const handleFilesChange = async (files: File[]) => {
+        setIsUploading(true);
+        setUploadError(null);
+        
+        try {
+            // Upload each file and get their paths
+            const uploadPromises = files.map(async (file) => {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const response = await axios.post(
+                    API_ENDPOINTS.FILES.UPLOAD(config.domain),
+                    formData,
+                    {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                        },
+                    }
+                );
+                
+                return {
+                    file,
+                    concepts: [...config.concepts],
+                    uploadedPath: response.data.data.path
+                };
+            });
+
+            const uploadedSources = await Promise.all(uploadPromises);
+            setSources(uploadedSources);
+        } catch (error) {
+            console.error('Error uploading files:', error);
+            setUploadError('Failed to upload files. Please check if the backend server is running and try again.');
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     // Toggles the selected source for editing
@@ -87,13 +121,24 @@ const SourceSelection: React.FC<SourceSelectionProps> = ({ config, onConfigChang
                 <div className="space-y-2">
                     <label className="text-sm font-medium">Upload Sources</label>
                     {!showSourceFinder && (
-                        <FileUploadList
-                            files={sources.map(s => s.file)}
-                            onFilesChange={handleFilesChange}
-                            disabled={showSourceFinder}
-                            label="Upload Source Files"
-                            emptyMessage="No source files uploaded. Click 'Upload Source Files' to add sources."
-                        />
+                        <>
+                            <FileUploadList
+                                files={sources.map(s => s.file)}
+                                onFilesChange={handleFilesChange}
+                                disabled={showSourceFinder || isUploading}
+                                label="Upload Source Files"
+                                emptyMessage="No source files uploaded. Click 'Upload Source Files' to add sources."
+                                accept=".txt"
+                            />
+                            {isUploading && (
+                                <div className="text-sm text-gray-500">Uploading files...</div>
+                            )}
+                            {uploadError && (
+                                <Alert variant="destructive" className="mt-2">
+                                    {uploadError}
+                                </Alert>
+                            )}
+                        </>
                     )}
                 </div>
 
