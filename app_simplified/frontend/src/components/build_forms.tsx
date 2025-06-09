@@ -5,7 +5,11 @@ import {
     Button,
     Typography,
     Alert,
+    Accordion,
+    AccordionSummary,
+    AccordionDetails,
 } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DomainConfig from './build_forms/DomainConfig';
 import PromptAssemblerConfig from './build_forms/PromptAssemblerConfig';
 import SourceSelection from './build_forms/SourceSelection';
@@ -94,22 +98,55 @@ const BenchmarkConfigForm: React.FC = () => {
 
             <div className="space-y-6">
                 {/* Domain Configuration - Handles domain name, concepts, and keywords */}
-                <DomainConfig 
-                    config={config} 
-                    onConfigChange={setConfig} 
-                />
+                <Accordion defaultExpanded>
+                    <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}
+                        aria-controls="domain-config-content"
+                        id="domain-config-header"
+                    >
+                        <Typography variant="h6">Domain Configuration</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <DomainConfig 
+                            config={config} 
+                            onConfigChange={setConfig} 
+                        />
+                    </AccordionDetails>
+                </Accordion>
 
                 {/* Source Configuration - Handles source selection and settings */}
-                <SourceSelection
-                    config={config}
-                    onConfigChange={setConfig}
-                />
+                <Accordion defaultExpanded>
+                    <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}
+                        aria-controls="source-config-content"
+                        id="source-config-header"
+                    >
+                        <Typography variant="h6">Source Configuration</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <SourceSelection
+                            config={config}
+                            onConfigChange={setConfig}
+                        />
+                    </AccordionDetails>
+                </Accordion>
 
                 {/* Prompt Assembly Configuration - Handles prompt generation and branching */}
-                <PromptAssemblerConfig 
-                    config={config} 
-                    onConfigChange={setConfig} 
-                />
+                <Accordion defaultExpanded>
+                    <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}
+                        aria-controls="prompt-config-content"
+                        id="prompt-config-header"
+                    >
+                        <Typography variant="h6">Prompt Assembly Configuration</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <PromptAssemblerConfig 
+                            config={config} 
+                            onConfigChange={setConfig} 
+                        />
+                    </AccordionDetails>
+                </Accordion>
 
                 {/* Error and Response Messages */}
                 {error && (

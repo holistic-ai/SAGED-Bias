@@ -21,8 +21,10 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
         aria-checked={checked}
         data-state={checked ? "checked" : "unchecked"}
         className={cn(
-          "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
-          checked ? "bg-primary" : "bg-gray-300 dark:bg-gray-600",
+          "relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer border-2",
+          checked 
+            ? "bg-green-600 border-green-700" 
+            : "bg-gray-300 border-gray-400",
           className
         )}
         onClick={handleClick}
@@ -31,8 +33,11 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
       >
         <span
           className={cn(
-            "pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform duration-200 ease-in-out",
-            checked ? "translate-x-5" : "translate-x-0"
+            "pointer-events-none absolute left-0.5 top-0.5 h-4 w-4 rounded-full transition-all duration-300 ease-in-out",
+            checked 
+              ? "translate-x-5 bg-white" 
+              : "translate-x-0 bg-white",
+            "shadow-md"
           )}
           style={{ WebkitTapHighlightColor: "transparent" }}
         />
