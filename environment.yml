@@ -1,0 +1,29 @@
+name: SAGED
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10  # or your preferred version
+  - fastapi
+  - uvicorn
+  - python-multipart
+  - sqlalchemy
+  - alembic
+  - pandas
+  - numpy
+  - scipy
+  - scikit-learn
+  - nltk
+  - spacy
+  - plotly
+  - tqdm
+  - python-dotenv
+  - pydantic
+  - requests
+  - openai
+  - pip
+  - pathlib
+  - pip:
+      - transformers>=4.38.0
+      - sentence-transformers>=2.5.1
+      - en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl 

@@ -70,13 +70,15 @@ def search_wikipedia(topic, language='en', user_agent='SAGED-bias (contact@holis
 
 
 class KeywordFinder:
-    def __init__(self, concept, domain):
+    def __init__(self, concept, domain, use_database=False, database_config=None):
         self.concept = concept
         self.domain = domain
         self.model = ''
         self.keywords = []
         self.finder_mode = None
         self.kw_targeted_source_finder_dict = None
+        self.use_database = use_database
+        self.database_config = database_config or {}
 
     def to_saged_data(self):
         keywords = self.keywords
@@ -109,6 +111,8 @@ class KeywordFinder:
 
             keywords_saged_data = saged_data.create_data(concept=self.concept, domain=self.domain, data_tier='keywords',
                                                    data=[keyword_entry])
+            keywords_saged_data.use_database = self.use_database
+            keywords_saged_data.database_config = self.database_config
 
             return keywords_saged_data
 
@@ -304,13 +308,15 @@ class SourceFinder:
         keyword_data_tier = keyword_saged_data.data_tier
         assert saged_data.tier_order[keyword_data_tier] >= saged_data.tier_order['keywords'], "You need an ata with " \
                                                                                         "data_tier higher than " \
-                                                                                        "keywords. "
+                                                                                        "scrap_area. "
         self.concept = keyword_saged_data.concept
         self.domain = keyword_saged_data.domain
         self.data = keyword_saged_data.data
         self.source_finder = []
         self.source_tage = source_tag
         self.source_type = 'unknown'
+        self.use_database = keyword_saged_data.use_database
+        self.database_config = keyword_saged_data.database_config
 
     def to_saged_data(self):
 
@@ -323,6 +329,8 @@ class SourceFinder:
         self.data[0]["concept_shared_source"] = formatted_source_finder
         source_finder = saged_data.create_data(concept=self.concept, domain=self.domain, data_tier='source_finder',
                                          data=self.data)
+        source_finder.use_database = self.use_database
+        source_finder.database_config = self.database_config
 
         return source_finder
 
@@ -473,14 +481,18 @@ class Scraper:
         self.data = source_finder_saged_data.data
         self.source_finder = source_finder_saged_data.data[0]["concept_shared_source"]
         self.keywords = self.data[0]["keywords"].keys()
-        self.extraction_expression = r'(?<=\.)\s+(?=[A-Z])|(?<=\?”)\s+|(?<=\.”)\s+'  # Regex pattern to split sentences
+        self.extraction_expression = r'(?<=\.)\s+(?=[A-Z])|(?<=\?")\s+|(?<=\.")\s+'  # Regex pattern to split sentences
         self.source_tag = 'default'
+        self.use_database = source_finder_saged_data.use_database
+        self.database_config = source_finder_saged_data.database_config
 
     @ignore_future_warnings
     def to_saged_data(self):
         scraped_sentences = saged_data.create_data(concept=self.concept, domain=self.domain,
                                                  data_tier='scraped_sentences',
                                                  data=self.data)
+        scraped_sentences.use_database = self.use_database
+        scraped_sentences.database_config = self.database_config
         return scraped_sentences
 
     @ignore_future_warnings

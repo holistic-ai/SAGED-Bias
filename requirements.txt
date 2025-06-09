@@ -1,21 +1,33 @@
-# FastAPI and web framework dependencies
-fastapi>=0.104.0
-uvicorn[standard]>=0.24.0
-python-multipart>=0.0.6
+# Core dependencies
+fastapi>=0.115.12
+uvicorn>=0.34.3
+python-multipart>=0.0.20
+sqlalchemy>=2.0.41
+alembic>=1.16.1
+pandas>=2.2.3
+numpy>=1.26.0
+scipy>=1.12.0
+scikit-learn>=1.4.0
 
-# Database dependencies
-sqlalchemy>=2.0.0
-alembic>=1.12.0
+# NLP and ML dependencies
+transformers>=4.38.0
+sentence-transformers>=2.5.1
+nltk>=3.8.1
+spacy>=3.7.4
+en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
 
-# Data processing dependencies
-pandas>=2.0.0
-numpy>=1.22.0
+# Visualization dependencies
+plotly>=5.19.0
 
-# Additional utilities
-python-dotenv>=1.0.0
-pydantic>=2.0.0
+# Utility dependencies
+tqdm>=4.66.2
+python-dotenv>=1.0.1
+pydantic>=2.6.3
 requests>=2.31.0
-openai>=1.0.0
+openai>=1.12.0
+
+# Additional dependencies
+pathlib>=1.0.1
 
 # SAGED dependencies (already in pyproject.toml)
 # These are inherited from the existing project dependencies 

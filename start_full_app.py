@@ -12,6 +12,10 @@ import subprocess
 import threading
 from pathlib import Path
 
+# Add the project root to Python path to ensure local saged package is used
+project_root = Path(__file__).parent.absolute()
+sys.path.insert(0, str(project_root))
+
 # Colors for terminal output
 class Colors:
     HEADER = '\033[95m'
@@ -99,7 +103,7 @@ class AppLauncher:
                 text=True,
                 bufsize=1,
                 universal_newlines=True,
-                env={**os.environ, "PYTHONPATH": str(self.backend_dir)}
+                env={**os.environ, "PYTHONPATH": f"{self.project_root}{os.pathsep}{self.backend_dir}"}
             )
             
             # Start a thread to monitor backend output
@@ -130,25 +134,42 @@ class AppLauncher:
         try:
             # Print current working directory and command
             print_colored(f"Current working directory: {self.frontend_dir}", Colors.OKCYAN)
+            
+            # Try to find npm in common locations
+            npm_paths = [
+                "npm",  # Try direct npm first
+                r"C:\Program Files\nodejs\npm.cmd",  # Common Windows installation path
+                r"C:\Program Files (x86)\nodejs\npm.cmd",
+                os.path.expanduser("~\\AppData\\Roaming\\npm\\npm.cmd"),  # User installation
+            ]
+            
+            npm_cmd = None
+            for path in npm_paths:
+                try:
+                    result = subprocess.run(
+                        [path, "--version"],
+                        capture_output=True,
+                        text=True,
+                        check=True
+                    )
+                    npm_cmd = path
+                    print_colored(f"Found npm at: {path}", Colors.OKGREEN)
+                    print_colored(f"NPM version: {result.stdout.strip()}", Colors.OKCYAN)
+                    break
+                except:
+                    continue
+            
+            if not npm_cmd:
+                print_colored("❌ Could not find npm executable. Please ensure Node.js is installed and in PATH", Colors.FAIL)
+                return False
+            
             print_colored("Running command: npm run dev", Colors.OKCYAN)
             
-            # Check if npm is available
-            try:
-                npm_version = subprocess.run(
-                    ["npm", "--version"],
-                    capture_output=True,
-                    text=True,
-                    check=True
-                )
-                print_colored(f"NPM version: {npm_version.stdout.strip()}", Colors.OKCYAN)
-            except Exception as e:
-                print_colored(f"Error checking npm version: {e}", Colors.FAIL)
-            
             self.frontend_process = subprocess.Popen(
-                ["npm", "run", "dev"],
+                [npm_cmd, "run", "dev"],
                 cwd=self.frontend_dir,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,  # Capture stderr separately
+                stderr=subprocess.PIPE,
                 text=True,
                 bufsize=1,
                 universal_newlines=True
@@ -195,20 +216,37 @@ class AppLauncher:
             return
             
         frontend_url = None
-        for line in iter(self.frontend_process.stdout.readline, ''):
-            if line.strip():
-                if "Local:" in line and "http://localhost:" in line:
-                    # Extract the URL
-                    parts = line.split()
-                    for part in parts:
-                        if part.startswith("http://localhost:"):
-                            frontend_url = part.rstrip('/')
-                            print_colored(f"🌐 Frontend: {frontend_url}", Colors.OKCYAN)
-                            break
-                elif "ready in" in line:
-                    print_colored(f"[FRONTEND] {line.strip()}", Colors.OKGREEN)
-                elif "error" in line.lower():
-                    print_colored(f"[FRONTEND] {line.strip()}", Colors.FAIL)
+        try:
+            for line in iter(self.frontend_process.stdout.readline, ''):
+                if line.strip():
+                    if "Local:" in line and "http://localhost:" in line:
+                        # Extract the URL
+                        parts = line.split()
+                        for part in parts:
+                            if part.startswith("http://localhost:"):
+                                frontend_url = part.rstrip('/')
+                                print_colored(f"🌐 Frontend: {frontend_url}", Colors.OKCYAN)
+                                break
+                    elif "ready in" in line:
+                        print_colored(f"[FRONTEND] {line.strip()}", Colors.OKGREEN)
+                    elif "error" in line.lower():
+                        print_colored(f"[FRONTEND] {line.strip()}", Colors.FAIL)
+        except UnicodeDecodeError:
+            # If we hit an encoding error, try to read with UTF-8
+            self.frontend_process.stdout.reconfigure(encoding='utf-8')
+            for line in iter(self.frontend_process.stdout.readline, ''):
+                if line.strip():
+                    if "Local:" in line and "http://localhost:" in line:
+                        parts = line.split()
+                        for part in parts:
+                            if part.startswith("http://localhost:"):
+                                frontend_url = part.rstrip('/')
+                                print_colored(f"🌐 Frontend: {frontend_url}", Colors.OKCYAN)
+                                break
+                    elif "ready in" in line:
+                        print_colored(f"[FRONTEND] {line.strip()}", Colors.OKGREEN)
+                    elif "error" in line.lower():
+                        print_colored(f"[FRONTEND] {line.strip()}", Colors.FAIL)
                     
     def cleanup(self):
         """Clean up processes on exit"""

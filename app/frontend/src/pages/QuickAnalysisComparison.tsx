@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 interface QuickAnalysisRequest {
   topic: string;
-  bias_category: string;
+  bias_concept: string;
   models_to_test: string[];
   include_baseline: boolean;
 }
@@ -37,7 +37,7 @@ interface ModelResult {
 interface QuickAnalysisResult {
   analysis_id: string;
   topic: string;
-  bias_category: string;
+  bias_concept: string;
   model_results: ModelResult[];
   baseline_result?: ModelResult;
   comparative_analysis: {
@@ -139,7 +139,7 @@ const QuickAnalysisComparison: React.FC = () => {
 
     analysisMutation.mutate({
       topic: topic.trim(),
-      bias_category: biasCategory.trim(),
+      bias_concept: biasCategory.trim(),
       models_to_test: selectedModels,
       include_baseline: includeBaseline,
     });
@@ -372,7 +372,7 @@ const QuickAnalysisComparison: React.FC = () => {
 
             <p className="text-sm text-gray-600">
               <strong>Topic:</strong> {result.topic} |{" "}
-              <strong>Category:</strong> {result.bias_category}
+              <strong>Category:</strong> {result.bias_concept}
             </p>
           </Card>
 

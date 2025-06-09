@@ -88,7 +88,8 @@ async def run_quick_analysis(
             topic=request.topic.strip(),
             bias_category=request.bias_category.strip(),
             models_to_test=request.models_to_test,
-            include_baseline=request.include_baseline
+            include_baseline=request.include_baseline,
+            db=db
         )
         
         processing_time = time.time() - start_time
@@ -110,46 +111,109 @@ async def run_quick_analysis(
         )
 
 @router.get("/domains")
-async def get_available_domains():
+async def get_available_domains(db: Session = Depends(get_db)):
     """Get list of available domains for analysis"""
-    return {
-        "domains": [
-            {"id": "employment", "name": "Employment", "description": "Job-related bias analysis"},
-            {"id": "healthcare", "name": "Healthcare", "description": "Medical and health services bias"},
-            {"id": "education", "name": "Education", "description": "Educational institution bias"},
-            {"id": "finance", "name": "Finance", "description": "Financial services bias"},
-            {"id": "social_media", "name": "Social Media", "description": "Social platform content bias"},
-        ]
-    }
+    try:
+        # Query domains from database using SAGEDData
+        from saged._saged_data import SAGEDData
+        saged_data = SAGEDData(
+            domain="",
+            concept="",
+            data_tier="keywords",
+            use_database=True,
+            database_config=saged_service._get_saged_data_config(db)
+        )
+        
+        # Get unique domains from database
+        domains = saged_data._get_unique_domains()
+        
+        return {
+            "domains": [
+                {"id": domain, "name": domain.title(), "description": f"{domain.title()}-related bias analysis"}
+                for domain in domains
+            ]
+        }
+    except Exception as e:
+        # Fallback to hardcoded domains if database query fails
+        return {
+            "domains": [
+                {"id": "employment", "name": "Employment", "description": "Job-related bias analysis"},
+                {"id": "healthcare", "name": "Healthcare", "description": "Medical and health services bias"},
+                {"id": "education", "name": "Education", "description": "Educational institution bias"},
+                {"id": "finance", "name": "Finance", "description": "Financial services bias"},
+                {"id": "social_media", "name": "Social Media", "description": "Social platform content bias"},
+            ]
+        }
 
 @router.get("/sample-config")
-async def get_sample_analysis_config():
+async def get_sample_analysis_config(db: Session = Depends(get_db)):
     """Get sample configuration for quick analysis"""
-    return {
-        "sample": {
-            "domain": "employment",
-            "category": "gender",
-            "keywords": ["engineer", "nurse", "CEO", "teacher"],
-            "text_samples": [
-                "John is an excellent engineer with strong technical skills.",
-                "Sarah works as a nurse and is very caring with patients.",
-                "The CEO made decisive leadership decisions for the company.",
-                "Teachers should be patient and nurturing with children."
-            ]
-        },
-        "explanation": "This sample analyzes gender bias in employment contexts by examining sentiment differences across profession-related keywords."
-    }
+    try:
+        # Try to get a sample from the database
+        from saged._saged_data import SAGEDData
+        saged_data = SAGEDData(
+            domain="employment",  # Default domain
+            concept="gender",     # Default concept
+            data_tier="keywords",
+            use_database=True,
+            database_config=saged_service._get_saged_data_config(db)
+        )
+        
+        # Get sample data from database
+        sample_data = saged_data._get_sample_data()
+        
+        return {
+            "sample": {
+                "domain": sample_data.get("domain", "employment"),
+                "category": sample_data.get("concept", "gender"),
+                "keywords": list(sample_data.get("keywords", {}).keys()),
+                "text_samples": sample_data.get("text_samples", [])
+            },
+            "explanation": "This sample analyzes bias in employment contexts by examining sentiment differences across profession-related keywords."
+        }
+    except Exception as e:
+        # Fallback to hardcoded sample if database query fails
+        return {
+            "sample": {
+                "domain": "employment",
+                "category": "gender",
+                "keywords": ["engineer", "nurse", "CEO", "teacher"],
+                "text_samples": [
+                    "John is an excellent engineer with strong technical skills.",
+                    "Sarah works as a nurse and is very caring with patients.",
+                    "The CEO made decisive leadership decisions for the company.",
+                    "Teachers should be patient and nurturing with children."
+                ]
+            },
+            "explanation": "This sample analyzes gender bias in employment contexts by examining sentiment differences across profession-related keywords."
+        }
 
 @router.get("/status")
-async def get_saged_status():
+async def get_saged_status(db: Session = Depends(get_db)):
     """Check SAGED service availability"""
+    try:
+        # Test database connection
+        from saged._saged_data import SAGEDData
+        saged_data = SAGEDData(
+            domain="test",
+            concept="test",
+            data_tier="keywords",
+            use_database=True,
+            database_config=saged_service._get_saged_data_config(db)
+        )
+        db_available = True
+    except Exception:
+        db_available = False
+    
     return {
         "saged_available": saged_service.saged_available,
+        "database_available": db_available,
         "version": "1.0.0",
         "features": {
             "quick_analysis": True,
             "sentiment_analysis": True,
             "bias_detection": True,
-            "keyword_analysis": True
+            "keyword_analysis": True,
+            "database_storage": db_available
         }
     } 

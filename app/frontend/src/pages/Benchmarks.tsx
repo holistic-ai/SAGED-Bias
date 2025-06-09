@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,7 +30,7 @@ interface Benchmark {
   name: string;
   description: string;
   domain: string;
-  categories: string[];
+  concepts: string[];
   data_tier: string;
   status: string;
   is_active: boolean;
@@ -41,9 +42,60 @@ interface CreateBenchmarkData {
   name: string;
   description: string;
   domain: string;
-  categories: string[];
+  concepts: string[];
   data_tier: string;
-  config: Record<string, any>;
+  config: {
+    concepts: string[];
+    branching: boolean;
+    branching_config?: {
+      branching_pairs: 'not_all' | 'all';
+      direction: 'both' | 'forward' | 'backward';
+      source_restriction?: string;
+      replacement_descriptor_require: boolean;
+      descriptor_threshold: 'Auto' | number;
+      descriptor_embedding_model: string;
+      descriptor_distance: 'cosine' | 'euclidean';
+      replacement_description: Record<string, any>;
+      replacement_description_saving: boolean;
+      replacement_description_saving_location?: string;
+      counterfactual_baseline: boolean;
+      generation_function?: any;
+    };
+    shared_config: {
+      keyword_finder: {
+        require: boolean;
+        method: 'embedding_on_wiki' | 'llm_inquiries' | 'hyperlinks_on_wiki';
+        keyword_number?: number;
+        max_adjustment?: number;
+        embedding_model?: string;
+        saving: boolean;
+        manual_keywords?: string[];
+      };
+      source_finder: {
+        require: boolean;
+        method: 'wiki' | 'local_files';
+        local_file?: string;
+        scrap_number?: number;
+        saving: boolean;
+        scrape_backlinks?: number;
+      };
+      scraper: {
+        require: boolean;
+        method: 'wiki' | 'local_files';
+        saving: boolean;
+      };
+      prompt_assembler: {
+        require: boolean;
+        method: 'split_sentences' | 'questions';
+        generation_function?: any;
+        keyword_list?: string[];
+        answer_check: boolean;
+        max_benchmark_length: number;
+      };
+    };
+    concept_specified_config?: Record<string, any>;
+    saving: boolean;
+  };
   created_by?: string;
 }
 
@@ -57,7 +109,7 @@ const DOMAINS = [
   "professional",
 ];
 
-const CATEGORIES = [
+const CONCEPTS = [
   "nationality",
   "gender",
   "race",
@@ -114,9 +166,41 @@ const Benchmarks: React.FC = () => {
     name: "",
     description: "",
     domain: "",
-    categories: [],
-    data_tier: "lite",
-    config: { model: "default", temperature: 0.7 },
+    concepts: [],
+    data_tier: "",
+    config: {
+      concepts: [],
+      branching: false,
+      shared_config: {
+        keyword_finder: {
+          require: true,
+          method: 'embedding_on_wiki',
+          keyword_number: 7,
+          max_adjustment: 150,
+          embedding_model: 'paraphrase-Mpnet-base-v2',
+          saving: true
+        },
+        source_finder: {
+          require: true,
+          method: 'wiki',
+          scrap_number: 5,
+          saving: true,
+          scrape_backlinks: 0
+        },
+        scraper: {
+          require: true,
+          method: 'wiki',
+          saving: true
+        },
+        prompt_assembler: {
+          require: true,
+          method: 'split_sentences',
+          answer_check: false,
+          max_benchmark_length: 500
+        }
+      },
+      saving: true
+    },
     created_by: "user",
   });
 
@@ -141,9 +225,41 @@ const Benchmarks: React.FC = () => {
         name: "",
         description: "",
         domain: "",
-        categories: [],
-        data_tier: "lite",
-        config: { model: "default", temperature: 0.7 },
+        concepts: [],
+        data_tier: "",
+        config: {
+          concepts: [],
+          branching: false,
+          shared_config: {
+            keyword_finder: {
+              require: true,
+              method: 'embedding_on_wiki',
+              keyword_number: 7,
+              max_adjustment: 150,
+              embedding_model: 'paraphrase-Mpnet-base-v2',
+              saving: true
+            },
+            source_finder: {
+              require: true,
+              method: 'wiki',
+              scrap_number: 5,
+              saving: true,
+              scrape_backlinks: 0
+            },
+            scraper: {
+              require: true,
+              method: 'wiki',
+              saving: true
+            },
+            prompt_assembler: {
+              require: true,
+              method: 'split_sentences',
+              answer_check: false,
+              max_benchmark_length: 500
+            }
+          },
+          saving: true
+        },
         created_by: "user",
       });
       toast({
@@ -183,7 +299,7 @@ const Benchmarks: React.FC = () => {
     if (
       !formData.name ||
       !formData.domain ||
-      formData.categories.length === 0
+      formData.concepts.length === 0
     ) {
       toast({
         title: "Error",
@@ -192,15 +308,25 @@ const Benchmarks: React.FC = () => {
       });
       return;
     }
-    createMutation.mutate(formData);
+
+    // Update config.concepts to match the selected concepts
+    const updatedFormData = {
+      ...formData,
+      config: {
+        ...formData.config,
+        concepts: formData.concepts
+      }
+    };
+
+    createMutation.mutate(updatedFormData);
   };
 
-  const handleCategoryChange = (category: string, checked: boolean) => {
+  const handleConceptChange = (concept: string, checked: boolean) => {
     setFormData((prev) => ({
       ...prev,
-      categories: checked
-        ? [...prev.categories, category]
-        : prev.categories.filter((c) => c !== category),
+      concepts: checked
+        ? [...prev.concepts, concept]
+        : prev.concepts.filter((c) => c !== concept),
     }));
   };
 
@@ -240,7 +366,7 @@ const Benchmarks: React.FC = () => {
   }
 
   return (
-    <div>
+    <div className="container mx-auto p-4">
       <div className="mb-8">
         <div className="flex justify-between items-center">
           <div>
@@ -257,118 +383,297 @@ const Benchmarks: React.FC = () => {
                 Create Benchmark
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create New Benchmark</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setFormData((prev) => ({ ...prev, name: e.target.value }))
-                    }
-                    placeholder="Enter benchmark name"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        description: e.target.value,
-                      }))
-                    }
-                    placeholder="Describe your benchmark"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="domain">Domain *</Label>
-                  <Select
-                    value={formData.domain}
-                    onValueChange={(value: string) =>
-                      setFormData((prev) => ({ ...prev, domain: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a domain" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DOMAINS.map((domain) => (
-                        <SelectItem key={domain} value={domain}>
-                          {domain.charAt(0).toUpperCase() + domain.slice(1)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label>Bias Categories *</Label>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    {CATEGORIES.map((category) => (
-                      <div
-                        key={category}
-                        className="flex items-center space-x-2"
-                      >
-                        <Checkbox
-                          id={category}
-                          checked={formData.categories.includes(category)}
-                          onCheckedChange={(checked: boolean) =>
-                            handleCategoryChange(category, checked)
-                          }
-                        />
-                        <Label htmlFor={category} className="text-sm">
-                          {category.charAt(0).toUpperCase() + category.slice(1)}
-                        </Label>
-                      </div>
-                    ))}
+                {/* Basic Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Basic Information</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Name</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) =>
+                          setFormData({ ...formData, name: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="domain">Domain</Label>
+                      <Input
+                        id="domain"
+                        value={formData.domain}
+                        onChange={(e) =>
+                          setFormData({ ...formData, domain: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) =>
+                        setFormData({ ...formData, description: e.target.value })
+                      }
+                      required
+                    />
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="data_tier">Data Tier</Label>
-                  <Select
-                    value={formData.data_tier}
-                    onValueChange={(value: string) =>
-                      setFormData((prev) => ({ ...prev, data_tier: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DATA_TIERS.map((tier) => (
-                        <SelectItem key={tier} value={tier}>
-                          {tier.charAt(0).toUpperCase() + tier.slice(1)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                {/* Concepts Selection */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Bias Concepts</h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="concepts">Concepts (comma-separated)</Label>
+                    <Input
+                      id="concepts"
+                      value={formData.concepts.join(", ")}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          concepts: e.target.value.split(",").map(c => c.trim()).filter(c => c !== "")
+                        })
+                      }
+                      placeholder="Enter concepts separated by commas"
+                      required
+                    />
+                  </div>
                 </div>
 
-                <div className="flex justify-end space-x-2 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsCreateModalOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={createMutation.isPending}>
-                    {createMutation.isPending
-                      ? "Creating..."
-                      : "Create Benchmark"}
-                  </Button>
+                {/* Data Tier */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Data Tier</h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="data_tier">Data Tier</Label>
+                    <Input
+                      id="data_tier"
+                      value={formData.data_tier}
+                      onChange={(e) =>
+                        setFormData({ ...formData, data_tier: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
                 </div>
+
+                {/* Configuration Settings */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Configuration Settings</h3>
+                  
+                  {/* Branching Configuration */}
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="branching"
+                        checked={formData.config.branching}
+                        onCheckedChange={(checked) =>
+                          setFormData({
+                            ...formData,
+                            config: {
+                              ...formData.config,
+                              branching: checked as boolean,
+                            },
+                          })
+                        }
+                      />
+                      <Label htmlFor="branching">Enable Branching</Label>
+                    </div>
+                  </div>
+
+                  {/* Shared Configuration */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Shared Configuration</h4>
+                    
+                    {/* Keyword Finder */}
+                    <div className="space-y-2 border p-4 rounded-lg">
+                      <h5 className="font-medium">Keyword Finder</h5>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Method</Label>
+                          <Select
+                            value={formData.config.shared_config.keyword_finder.method}
+                            onValueChange={(value) =>
+                              setFormData({
+                                ...formData,
+                                config: {
+                                  ...formData.config,
+                                  shared_config: {
+                                    ...formData.config.shared_config,
+                                    keyword_finder: {
+                                      ...formData.config.shared_config.keyword_finder,
+                                      method: value as any,
+                                    },
+                                  },
+                                },
+                              })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select method" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="embedding_on_wiki">Embedding on Wiki</SelectItem>
+                              <SelectItem value="llm_inquiries">LLM Inquiries</SelectItem>
+                              <SelectItem value="hyperlinks_on_wiki">Hyperlinks on Wiki</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Keyword Number</Label>
+                          <Input
+                            type="number"
+                            value={formData.config.shared_config.keyword_finder.keyword_number}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                config: {
+                                  ...formData.config,
+                                  shared_config: {
+                                    ...formData.config.shared_config,
+                                    keyword_finder: {
+                                      ...formData.config.shared_config.keyword_finder,
+                                      keyword_number: parseInt(e.target.value),
+                                    },
+                                  },
+                                },
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Source Finder */}
+                    <div className="space-y-2 border p-4 rounded-lg">
+                      <h5 className="font-medium">Source Finder</h5>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Method</Label>
+                          <Select
+                            value={formData.config.shared_config.source_finder.method}
+                            onValueChange={(value) =>
+                              setFormData({
+                                ...formData,
+                                config: {
+                                  ...formData.config,
+                                  shared_config: {
+                                    ...formData.config.shared_config,
+                                    source_finder: {
+                                      ...formData.config.shared_config.source_finder,
+                                      method: value as any,
+                                    },
+                                  },
+                                },
+                              })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select method" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="wiki">Wiki</SelectItem>
+                              <SelectItem value="local_files">Local Files</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Scrap Number</Label>
+                          <Input
+                            type="number"
+                            value={formData.config.shared_config.source_finder.scrap_number}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                config: {
+                                  ...formData.config,
+                                  shared_config: {
+                                    ...formData.config.shared_config,
+                                    source_finder: {
+                                      ...formData.config.shared_config.source_finder,
+                                      scrap_number: parseInt(e.target.value),
+                                    },
+                                  },
+                                },
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Prompt Assembler */}
+                    <div className="space-y-2 border p-4 rounded-lg">
+                      <h5 className="font-medium">Prompt Assembler</h5>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Method</Label>
+                          <Select
+                            value={formData.config.shared_config.prompt_assembler.method}
+                            onValueChange={(value) =>
+                              setFormData({
+                                ...formData,
+                                config: {
+                                  ...formData.config,
+                                  shared_config: {
+                                    ...formData.config.shared_config,
+                                    prompt_assembler: {
+                                      ...formData.config.shared_config.prompt_assembler,
+                                      method: value as any,
+                                    },
+                                  },
+                                },
+                              })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select method" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="split_sentences">Split Sentences</SelectItem>
+                              <SelectItem value="questions">Questions</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Max Benchmark Length</Label>
+                          <Input
+                            type="number"
+                            value={formData.config.shared_config.prompt_assembler.max_benchmark_length}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                config: {
+                                  ...formData.config,
+                                  shared_config: {
+                                    ...formData.config.shared_config,
+                                    prompt_assembler: {
+                                      ...formData.config.shared_config.prompt_assembler,
+                                      max_benchmark_length: parseInt(e.target.value),
+                                    },
+                                  },
+                                },
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button type="submit" disabled={createMutation.isPending}>
+                    {createMutation.isPending ? "Creating..." : "Create Benchmark"}
+                  </Button>
+                </DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
@@ -410,7 +715,7 @@ const Benchmarks: React.FC = () => {
                     <div className="flex items-center gap-4 text-sm text-gray-500">
                       <span>Domain: {benchmark.domain}</span>
                       <span>•</span>
-                      <span>Categories: {benchmark.categories.join(", ")}</span>
+                      <span>Concepts: {benchmark.concepts.join(", ")}</span>
                       <span>•</span>
                       <span>Created {formatDate(benchmark.created_at)}</span>
                     </div>

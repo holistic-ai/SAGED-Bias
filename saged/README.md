@@ -250,7 +250,7 @@ from saged import SAGEDData
 
 saged = SAGEDData(
     domain="healthcare",           # Application domain
-    concept="gender",              # Bias category
+    concept="gender",              # Bias concept (changed from category)
     data_tier="scraped_sentences", # Complexity level
     config={
         # Scraping configuration
@@ -336,7 +336,7 @@ class SAGEDData:
 
         Args:
             domain: Application domain (employment, healthcare, etc.)
-            concept: Bias category (gender, race, nationality, etc.)
+            concept: Bias concept (gender, race, nationality, etc.)
             data_tier: Complexity level (lite, keywords, questions, etc.)
             config: Custom configuration dictionary
             cache_dir: Directory for caching intermediate results

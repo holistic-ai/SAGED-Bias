@@ -34,13 +34,18 @@ class PromptAssembler:
         self.domain = scraped_sentence_saged_data.domain
         self.data = scraped_sentence_saged_data.data
         self.output_df = pd.DataFrame()
+        self.use_database = scraped_sentence_saged_data.use_database
+        self.database_config = scraped_sentence_saged_data.database_config
 
         # Load the English model for spaCy
         self.nlp = spacy.load("en_core_web_sm")
 
-    def scraped_sentence_to_saged_data(self, data_tier='split_sentences'):
-        return _saged_data.create_data(concept=self.concept, domain=self.domain, data_tier=data_tier,
+    def scraped_sentence_to_saged_data(self, data_tier='questions'):
+        result = _saged_data.create_data(concept=self.concept, domain=self.domain, data_tier=data_tier,
                                    data=self.output_df)
+        result.use_database = self.use_database
+        result.database_config = self.database_config
+        return result
 
     @ignore_future_warnings
     def split_sentences(self, kw_check=False, keyword=None):

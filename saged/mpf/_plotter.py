@@ -156,7 +156,7 @@ def plot_benchmark_results(
                 score_col = f'{sent_type}_sentiment_score'
                 if score_col in df.columns:
                     plot_data.append({
-                        'Category': row[group],
+                        'Concept': row[group],
                         'Sentiment': row[score_col],
                         'Type': sent_type.capitalize(),
                         'Group': group.capitalize()
@@ -183,9 +183,9 @@ def plot_benchmark_results(
                 marker = '.'
                 size = 6
                 alpha = 0.6
-            sns.stripplot(data=data, x='Category', y='Sentiment', hue=None,
+            sns.stripplot(data=data, x='Concept', y='Sentiment', hue=None,
                           color=color_palette[sent_type.capitalize()], jitter=True, alpha=alpha, ax=ax1, marker=marker, size=size, label=sent_type.capitalize())
-        ax1.set_title('Sentiment Distribution by Category')
+        ax1.set_title('Sentiment Distribution by Concept')
         plt.xticks(rotation=45, ha='right')
         ax1.set_ylim(0, 1)
         ax1.axhline(y=0.5, color='gray', linestyle='--', alpha=0.3)
@@ -209,7 +209,7 @@ def plot_benchmark_results(
         print(f"Jitter plot saved to: {jitter_path}")
     
     if 'histogram' in plot_types:
-        categories = plot_df['Category'].unique()
+        categories = plot_df['Concept'].unique()
         n_categories = len(categories)
         n_cols = 3
         n_rows = (n_categories + n_cols - 1) // n_cols
@@ -224,7 +224,7 @@ def plot_benchmark_results(
             labels.append(sent_type.capitalize())
         for idx, category in enumerate(categories):
             ax = axes[idx]
-            category_data = plot_df[plot_df['Category'] == category]
+            category_data = plot_df[plot_df['Concept'] == category]
             for sent_type in sentiment_types:
                 data = category_data[category_data['Type'] == sent_type.capitalize()]
                 lw = 3 if sent_type in highlight_types else 2

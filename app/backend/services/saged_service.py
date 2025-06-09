@@ -33,6 +33,21 @@ class SAGEDService:
     
     def __init__(self):
         self.saged_available = SAGED_AVAILABLE
+        self.database_config = {
+            'use_database': True,
+            'database_type': 'sql',
+            'database_connection': 'sqlite:///./data/db/saged_app.db'
+        }
+    
+    def _get_saged_data_config(self, db: Session = None):
+        """Get database configuration for SAGEDData"""
+        if db:
+            return {
+                'use_database': True,
+                'database_type': 'sql',
+                'database_connection': str(db.get_bind().url)
+            }
+        return self.database_config
     
     def validate_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """Validate SAGED configuration"""
@@ -77,66 +92,61 @@ class SAGEDService:
             return {"success": False, "error": "SAGED library not available"}
         
         try:
-            # Create Pipeline instance
-            pipeline = Pipeline(benchmark_config)
+            # Validate the configuration first
+            validation_result = self.validate_config(benchmark_config)
+            if not validation_result["valid"]:
+                return {
+                    "success": False, 
+                    "error": "Invalid configuration", 
+                    "validation_errors": validation_result["errors"]
+                }
             
-            # Run the pipeline stages for benchmark creation
-            result = {"success": True, "stages": {}}
+            # Get database configuration
+            database_config = self._get_saged_data_config(db)
             
-            # Stage 1: Keyword Finding
-            if benchmark_config.get("shared_config", {}).get("keyword_finder", {}).get("require", False):
-                print(f"Running keyword finder for benchmark {benchmark_id}...")
-                try:
-                    pipeline.run_keyword_finding()
-                    result["stages"]["keyword_finding"] = {"status": "completed", "timestamp": datetime.now().isoformat()}
-                except Exception as e:
-                    result["stages"]["keyword_finding"] = {"status": "failed", "error": str(e)}
-                    print(f"Keyword finding failed: {e}")
+            # Create the domain configuration
+            domain_config = {
+                'categories': benchmark_config['categories'],
+                'branching': benchmark_config.get('branching', False),
+                'branching_config': benchmark_config.get('branching_config', {}),
+                'shared_config': benchmark_config['shared_config'],
+                'concept_specified_config': benchmark_config.get('concept_specified_config', {}),
+                'saving': True,
+                'saving_location': f'data/app_data/benchmarks/benchmark_{benchmark_id}_saged_data.json'
+            }
             
-            # Stage 2: Source Finding
-            if benchmark_config.get("shared_config", {}).get("source_finder", {}).get("require", False):
-                print(f"Running source finder for benchmark {benchmark_id}...")
-                try:
-                    pipeline.run_source_finding()
-                    result["stages"]["source_finding"] = {"status": "completed", "timestamp": datetime.now().isoformat()}
-                except Exception as e:
-                    result["stages"]["source_finding"] = {"status": "failed", "error": str(e)}
-                    print(f"Source finding failed: {e}")
-            
-            # Stage 3: Scraping
-            if benchmark_config.get("shared_config", {}).get("scraper", {}).get("require", False):
-                print(f"Running scraper for benchmark {benchmark_id}...")
-                try:
-                    pipeline.run_scraping()
-                    result["stages"]["scraping"] = {"status": "completed", "timestamp": datetime.now().isoformat()}
-                except Exception as e:
-                    result["stages"]["scraping"] = {"status": "failed", "error": str(e)}
-                    print(f"Scraping failed: {e}")
-            
-            # Stage 4: Prompt Assembly
-            if benchmark_config.get("shared_config", {}).get("prompt_assembler", {}).get("require", False):
-                print(f"Running prompt assembler for benchmark {benchmark_id}...")
-                try:
-                    pipeline.run_prompt_assembling()
-                    result["stages"]["prompt_assembling"] = {"status": "completed", "timestamp": datetime.now().isoformat()}
-                    
-                    # Save the assembled benchmark data
-                    data_path = f"data/app_data/benchmarks/benchmark_{benchmark_id}_saged_data.json"
-                    os.makedirs(os.path.dirname(data_path), exist_ok=True)
-                    
-                    # Export the pipeline data
-                    saged_data = pipeline.get_assembled_data()
-                    if hasattr(saged_data, 'to_dict'):
-                        with open(data_path, 'w') as f:
-                            json.dump(saged_data.to_dict(), f, indent=2, default=str)
-                    
-                    result["data_path"] = data_path
-                    
-                except Exception as e:
-                    result["stages"]["prompt_assembling"] = {"status": "failed", "error": str(e)}
-                    print(f"Prompt assembling failed: {e}")
-            
-            return result
+            # Build the benchmark using Pipeline
+            try:
+                benchmark = Pipeline.build_benchmark(
+                    domain=benchmark_config.get('domain', 'unspecified'),
+                    config=domain_config
+                )
+                
+                # Save the assembled benchmark data
+                data_path = f"data/app_data/benchmarks/benchmark_{benchmark_id}_saged_data.json"
+                os.makedirs(os.path.dirname(data_path), exist_ok=True)
+                
+                # Export the pipeline data
+                saged_data = benchmark.data
+                if hasattr(saged_data, 'to_dict'):
+                    with open(data_path, 'w') as f:
+                        json.dump(saged_data.to_dict(), f, indent=2, default=str)
+                
+                return {
+                    "success": True,
+                    "data_path": data_path,
+                    "stages": {
+                        "keyword_finding": {"status": "completed", "timestamp": datetime.now().isoformat()},
+                        "source_finding": {"status": "completed", "timestamp": datetime.now().isoformat()},
+                        "scraping": {"status": "completed", "timestamp": datetime.now().isoformat()},
+                        "prompt_assembling": {"status": "completed", "timestamp": datetime.now().isoformat()}
+                    }
+                }
+                
+            except Exception as e:
+                error_msg = f"Benchmark building failed: {str(e)}\n{traceback.format_exc()}"
+                print(error_msg)
+                return {"success": False, "error": error_msg}
             
         except Exception as e:
             error_msg = f"Pipeline execution failed: {str(e)}\n{traceback.format_exc()}"
@@ -148,6 +158,7 @@ class SAGEDService:
         experiment_config: Dict[str, Any],
         benchmark_data_path: str,
         experiment_id: int,
+        db: Session,
         progress_callback: Optional[callable] = None
     ) -> Dict[str, Any]:
         """Run complete SAGED experiment pipeline"""
@@ -158,7 +169,7 @@ class SAGEDService:
         try:
             result = {"success": True, "stages": {}, "results": {}}
             
-            # Load benchmark data
+            # Load benchmark data with database config
             if not os.path.exists(benchmark_data_path):
                 return {"success": False, "error": f"Benchmark data not found: {benchmark_data_path}"}
             
@@ -390,10 +401,11 @@ class SAGEDService:
     
     async def run_quick_analysis(
         self,
-        domain: str,
-        category: str,
+        topic: str,
+        bias_category: str,
         keywords: List[str],
-        text_samples: List[str]
+        text_samples: List[str],
+        db: Session = None
     ) -> Dict[str, Any]:
         """
         Run a simplified bias analysis on text samples
