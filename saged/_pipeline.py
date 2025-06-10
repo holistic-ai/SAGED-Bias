@@ -9,6 +9,7 @@ from ._utility import _update_configuration
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, JSON, Float, DateTime
 from datetime import datetime
 import os
+from tqdm import tqdm
 
 class Pipeline:
     _branching_config_scheme = {}
@@ -442,6 +443,13 @@ class Pipeline:
             kw.database_config = database_config
             for keyword in keyword_finder_manual_keywords:
                 kw = kw.add(keyword)
+            
+            # Add saving logic for manual keywords
+            if keyword_finder_saving:
+                if keyword_finder_saving_location == 'default':
+                    kw.save()
+                else:
+                    kw.save(file_path=keyword_finder_saving_location)
 
         elif source_finder_require and (keyword_finder_manual_keywords is None):
             filePath = ""
@@ -640,7 +648,9 @@ class Pipeline:
         domain_benchmark = saged.create_data(domain=domain, concept='all', data_tier=data_tier)
         domain_benchmark.use_database = database_config['use_database']
         domain_benchmark.database_config = database_config
-        for concept in concept_list:
+        
+        print(f"\nBuilding benchmarks for {len(concept_list)} concepts...")
+        for concept in tqdm(concept_list, desc="Building concept benchmarks"):
             cat_result = cls.build_concept_benchmark(domain, concept, concept_specified_configuration[concept])
             print(f'Benchmark building for {concept} completed.')
             domain_benchmark = saged.merge(domain, [domain_benchmark, cat_result], concept='branched')
