@@ -462,12 +462,22 @@ class SourceFinder:
             self.source_type = 'wiki_urls'
             return self.to_saged_data()
 
-    @ignore_future_warnings
-    def local(self, directory_path):
-        # Use glob to find all text files in the directory and its subdirectories
-        text_files = glob.glob(os.path.join(directory_path, '**/*.txt'), recursive=True)
-        file_paths = [file_path.replace('\\', '/') for file_path in text_files]
-        self.source_finder= file_paths
+    def local(self, directory_path, direct_path_list=None):
+        """Find text files either from a directory or use provided direct path list.
+        
+        Args:
+            directory_path (str): Path to directory containing text files
+            direct_path_list (list, optional): List of direct file paths to use instead of searching directory
+        """
+        if direct_path_list is not None and len(direct_path_list) > 0:
+            # Use provided direct path list
+            file_paths =  direct_path_list
+        else:
+            # Use glob to find all text files in the directory and its subdirectories
+            text_files = glob.glob(os.path.join(directory_path, '**/*.txt'), recursive=True)
+            file_paths = [file_path.replace('\\', '/') for file_path in text_files]
+            
+        self.source_finder = file_paths
         self.source_type = 'local_paths'
         return self.to_saged_data()
 
@@ -584,7 +594,7 @@ class Scraper:
         return self.to_saged_data()
 
     @ignore_future_warnings
-    def scrape_local_with_buffer_files(self):
+    def scrape_local_with_buffer_files(self, use_database=False, database_config=None):
         file_paths = []
         source_tags_list = []
         for sa_dict in self.source_finder:
@@ -603,9 +613,12 @@ class Scraper:
                 source_tag_buffer = []
 
                 for keyword in tqdm(self.keywords, desc='Scraping in page', unit='keyword'):
-                    # Read the file content
-                    with open(file_path, 'r', encoding='utf-8') as file:
-                        text = file.read()
+                    # Read the file content using retrieve_txt
+                    try:
+                        text = saged_data.retrieve_txt(file_path, use_database, database_config)
+                    except Exception as e:
+                        print(f"Error reading file {file_path}: {str(e)}")
+                        continue
 
                     # Clean the text by removing citations and other patterns within square brackets
                     text = text.replace('.\n', '. ').replace('\n', ' ')

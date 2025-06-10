@@ -5,7 +5,8 @@ from tqdm import tqdm
 from collections import defaultdict
 import sqlite3
 import sqlalchemy
-from sqlalchemy import create_engine, text, Table, Column, Integer, String, JSON, MetaData
+from sqlalchemy import create_engine, text, Table, Column, Integer, String, JSON, MetaData, DateTime
+from datetime import datetime
 
 tqdm.pandas()
 
@@ -626,3 +627,46 @@ class SAGEDData:
             return self
 
         return self.data
+
+    @classmethod
+    def retrieve_txt(cls, file_path, use_database=False, database_config=None):
+        """Retrieve text content from either a file or database.
+        
+        Args:
+            file_path (str): Path to the text file or database identifier
+            use_database (bool): Whether to retrieve from database
+            database_config (dict): Database configuration if using database
+            
+        Returns:
+            str: The text content from the file or database
+        """
+        if use_database:
+            if not database_config:
+                raise ValueError("Database configuration is required when use_database is True")
+                
+            if database_config.get('database_type') == 'sql':
+                engine = create_engine(database_config['database_connection'])
+                # Get the source text table name from config, default to 'source_texts'
+                table_name = database_config.get('source_text_table', 'source_texts')
+                
+                try:
+                    with engine.connect() as conn:
+                        # Query the table using file_path to get the content
+                        query = text(f"SELECT content FROM {table_name} WHERE file_path = :file_path")
+                        result = conn.execute(query, {"file_path": file_path}).first()
+                        if result:
+                            return result[0]  # Return the content column value
+                        else:
+                            raise FileNotFoundError(f"No content found for file path: {file_path}")
+                except Exception as e:
+                    raise Exception(f"Error retrieving text from database: {str(e)}")
+            else:
+                raise ValueError(f"Unsupported database type: {database_config.get('database_type')}")
+        else:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    return f.read()
+            except FileNotFoundError:
+                raise FileNotFoundError(f"File not found: {file_path}")
+            except Exception as e:
+                raise Exception(f"Error reading file: {str(e)}")

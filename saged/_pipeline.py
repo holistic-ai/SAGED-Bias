@@ -41,6 +41,7 @@ class Pipeline:
             'database_type': None,  # 'sql' or 'json' or 'sqlite'
             'database_connection': None,  # Connection string or path
             'table_prefix': None,  # Prefix for database tables
+            'source_text_table': None,  # Table name for storing source texts
         }
         
         cls._database_default_config = {
@@ -48,6 +49,7 @@ class Pipeline:
             'database_type': 'json',
             'database_connection': 'data/customized/database',
             'table_prefix': '',
+            'source_text_table': 'source_texts',  # Default table name for source texts
         }
 
         cls._llm_inquiries_config_scheme = {
@@ -105,6 +107,7 @@ class Pipeline:
                 'saving': None,
                 'saving_location': None,
                 'scrape_backlinks': None,
+                'manual_sources': None,  # List of direct file paths to use
             },
             'scraper': {
                 'require': None,
@@ -174,6 +177,7 @@ class Pipeline:
                 'saving': True,
                 'saving_location': 'default',
                 'scrape_backlinks': 0,
+                'manual_sources': [],  # Default empty list for manual sources
             },
             'scraper': {
                 'require': True,
@@ -354,10 +358,10 @@ class Pipeline:
         source_finder_config = configuration['source_finder']
         source_finder_require, source_finder_reading_location, source_finder_method, \
         source_finder_local_file, source_finder_saving, source_finder_saving_location, \
-        source_finder_scrap_area_number, source_finder_scrap_backlinks = (
+        source_finder_scrap_area_number, source_finder_scrap_backlinks, source_finder_manual_sources = (
             source_finder_config[key] for key in [
             'require', 'reading_location', 'method', 'local_file', 'saving',
-            'saving_location', 'scrape_number', 'scrape_backlinks'
+            'saving_location', 'scrape_number', 'scrape_backlinks', 'manual_sources'
         ]
         )
 
@@ -476,7 +480,10 @@ class Pipeline:
             elif source_finder_method == 'local_files':
                 if source_finder_local_file == None:
                     raise ValueError(f"Unable to read keywords from {source_finder_local_file}. Can't scrap area.")
-                sa = SourceFinder(kw, source_tag='local').local(source_finder_local_file)
+                sa = SourceFinder(kw, source_tag='local').local(
+                    source_finder_local_file, 
+                    direct_path_list=source_finder_manual_sources
+                )
             print('...Sources for Scraping located...')
 
  
@@ -484,10 +491,6 @@ class Pipeline:
             if source_finder_saving:
                 sa.use_database = database_config['use_database']
                 sa.database_config = database_config
-                # print("config", config)
-                # print(f'Saving sources to {source_finder_saving_location}')
-                # print("database_config", database_config)
-                # print("source_finder_saving_location", source_finder_saving_location)
                 sa.save(file_path=source_finder_saving_location)
         elif scraper_require:
             filePath = ""
@@ -513,7 +516,10 @@ class Pipeline:
             if scraper_method == 'wiki':
                 sc = Scraper(sa).scrape_in_page_for_wiki_with_buffer_files()
             elif scraper_method == 'local_files':
-                sc = Scraper(sa).scrape_local_with_buffer_files()
+                sc = Scraper(sa).scrape_local_with_buffer_files(
+                    use_database=database_config['use_database'],
+                    database_config=database_config
+                )
             print('Scraped sentences completed.')
 
             sc.use_database = database_config['use_database']
