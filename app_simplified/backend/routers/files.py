@@ -14,9 +14,11 @@ class TableNameUpdate(BaseModel):
     table_name: str
 
 # Create instances of services
-file_service_config = FileServiceConfig()
-file_service = FileService(file_service_config.database_config)
 database_service = DatabaseService()
+file_service_config = FileServiceConfig(
+    database_config=DatabaseConfig(**database_service.get_database_config())
+)
+file_service = FileService(file_service_config.database_config)
 
 @router.put("/config/table")
 async def update_source_table(table_update: TableNameUpdate):

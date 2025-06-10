@@ -82,7 +82,10 @@ class FileService:
                 })
                 conn.commit()
             
-            logger.info(f"File content saved to database: {file_path}")
+            # Enhanced logging with content preview
+            content_preview = content_str[:200] + "..." if len(content_str) > 200 else content_str
+            logger.info(f"File saved to database - Table: {self.database_config.source_text_table}, "
+                       f"Path: {file_path}, Content Preview: {content_preview}")
             return file_path
             
         except Exception as e:

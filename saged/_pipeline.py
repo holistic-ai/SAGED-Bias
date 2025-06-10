@@ -478,8 +478,8 @@ class Pipeline:
                 sa = SourceFinder(kw, source_tag='wiki').wiki(
                     top_n=source_finder_scrap_area_number, scrape_backlinks=source_finder_scrap_backlinks)
             elif source_finder_method == 'local_files':
-                if source_finder_local_file == None:
-                    raise ValueError(f"Unable to read sources from {source_finder_local_file}. Can't scrape area.")
+                if source_finder_local_file == None and len(source_finder_manual_sources) == 0:
+                    raise ValueError(f"Unable to read sources, because neither local_file nor manual_sources are provided. Can't scrape area.")
                 sa = SourceFinder(kw, source_tag='local').local(
                     source_finder_local_file, 
                     direct_path_list=source_finder_manual_sources
