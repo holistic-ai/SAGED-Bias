@@ -17,6 +17,9 @@ from tqdm import tqdm
 from ._utility import clean_list, construct_non_containing_set, check_generation_function
 from ._utility import ignore_future_warnings
 
+import tempfile
+import shutil
+
 @ignore_future_warnings
 def find_similar_keywords(model_name, target_word, keywords_list, top_n=100):
     """
@@ -497,7 +500,6 @@ class Scraper:
 
     @ignore_future_warnings
     def scrape_in_page_for_wiki_with_buffer_files(self):
-
         url_links = []
         source_tags_list = []
         for sa_dict in self.source_finder:
@@ -505,98 +507,84 @@ class Scraper:
                 url_links.extend(sa_dict["source_specification"])
                 source_tags_list.extend([sa_dict["source_tag"]] * len(sa_dict["source_specification"]))
 
-        temp_dir = 'temp_results'
-        os.makedirs(temp_dir, exist_ok=True)
-        for url, source_tag in tqdm(zip(url_links, source_tags_list), desc='Scraping through URL', unit='url',
-                                    total=min(len(url_links), len(source_tags_list))):
-            url_results = []
-            source_tag_buffer = []
-            for keyword in tqdm(self.keywords, desc='Scraping in page', unit='keyword'):
+        # Create a temporary directory that will be automatically cleaned up
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Dictionary to store temporary files for each keyword
+            temp_files = {}
+            
+            for url, source_tag in tqdm(zip(url_links, source_tags_list), desc='Scraping through URL', unit='url',
+                                        total=min(len(url_links), len(source_tags_list))):
+                url_results = []
+                source_tag_buffer = []
+                
+                for keyword in tqdm(self.keywords, desc='Scraping in page', unit='keyword'):
+                    # Fetch the HTML content of the URL
+                    response = requests.get(url)
+                    soup = BeautifulSoup(response.content, 'html.parser')
 
-                # Fetch the HTML content of the URL
-                response = requests.get(url)
-                soup = BeautifulSoup(response.content, 'html.parser')
+                    # Find all text elements in the HTML
+                    text_elements = soup.find_all(['p', 'caption', 'figcaption'])
 
-                # Find all text elements in the HTML
-                text_elements = soup.find_all(['p', 'caption', 'figcaption'])
+                    # Compile regex pattern to match keywords
+                    keyword_regex = re.compile(r'\b(' + '|'.join([keyword]) + r')\b', re.IGNORECASE)
 
-                # Compile regex pattern to match keywords
-                keyword_regex = re.compile(r'\b(' + '|'.join([keyword]) + r')\b', re.IGNORECASE)
+                    # Iterate through each text element
+                    for element in text_elements:
+                        # Remove references like '[42]' and '[page needed]'
+                        clean_text = re.sub(r'\[\d+\]|\[.*?\]', '', element.get_text())
 
-                # Iterate through each text element
-                for element in text_elements:
-                    # Remove references like '[42]' and '[page needed]'
-                    clean_text = re.sub(r'\[\d+\]|\[.*?\]', '', element.get_text())
+                        # Split text into sentences
+                        sentences = re.split(self.extraction_expression, clean_text)
 
-                    # Split text into sentences
-                    sentences = re.split(self.extraction_expression, clean_text)
+                        # Check each sentence for the keyword
+                        for sentence in sentences:
+                            if len(sentence.split()) >= 6 and keyword_regex.search(sentence):
+                                url_results.append(sentence.strip())
+                                source_tag_buffer.append(source_tag)
 
-                    # Check each sentence for the keyword
-                    for sentence in sentences:
-                        if len(sentence.split()) >= 6 and keyword_regex.search(sentence):
-                            url_results.append(sentence.strip())
-                            source_tag_buffer.append(source_tag)
+                    # Create temporary files for this keyword if they don't exist
+                    if keyword not in temp_files:
+                        temp_files[keyword] = {
+                            'sentences': tempfile.NamedTemporaryFile(mode='w+', encoding='utf-8', delete=False),
+                            'source_tags': tempfile.NamedTemporaryFile(mode='w+', encoding='utf-8', delete=False)
+                        }
 
-                # Store results in a temporary file
-                temp_file = os.path.join(temp_dir, f'{url.replace("https://", "").replace("/", "_")}_{keyword}.txt')
-                with open(temp_file, 'w', encoding='utf-8') as f:
+                    # Write results to temporary files
                     for sentence in url_results:
-                        f.write(f'{sentence}\n')
+                        temp_files[keyword]['sentences'].write(f'{sentence}\n')
+                    for tag in source_tag_buffer:
+                        temp_files[keyword]['source_tags'].write(f'{tag}\n')
 
-                temp_file_source_tag = os.path.join(temp_dir,
-                                                    f'{url.replace("https://", "").replace("/", "_")}_{keyword}_source_tag.txt')
-                with open(temp_file_source_tag, 'w', encoding='utf-8') as f:
-                    for source_tag in source_tag_buffer:
-                        f.write(f'{source_tag}\n')
-
-        # Read from temporary files and aggregate results
-        for keyword in self.keywords:
-            aggregated_results = []
-            aggregated_source_tags = []
-            for url in url_links:
-                temp_file = os.path.join(temp_dir, f'{url.replace("https://", "").replace("/", "_")}_{keyword}.txt')
-                temp_file_source_tag = os.path.join(temp_dir,
-                                                    f'{url.replace("https://", "").replace("/", "_")}_{keyword}_source_tag.txt')
-                if os.path.exists(temp_file) and os.path.exists(temp_file_source_tag):
-                    with open(temp_file, 'r', encoding='utf-8') as f:
-                        sentences = f.readlines()
-                        aggregated_results.extend([sentence.strip() for sentence in sentences])
-                    with open(temp_file_source_tag, 'r', encoding='utf-8') as f:
-                        source_tags = f.readlines()
-                        aggregated_source_tags.extend([source_tag.strip() for source_tag in source_tags])
-                    os.remove(temp_file)
-                    os.remove(temp_file_source_tag)
-            aggregated_results_with_source_tag = list(zip(aggregated_results, aggregated_source_tags))
-
-            # # Store aggregated results in the data structure
-            # if "scraped_sentences" in self.data[0]["keywords"][keyword].keys():
-            #     self.data[0]["keywords"][keyword]["scraped_sentences"].extend(aggregated_results_with_source_tag)
-            # else:
-            #     self.data[0]["keywords"][keyword]["scraped_sentences"] = aggregated_results_with_source_tag
-            # Step 1: Create a temporary data structure for each keyword
-            temp_data = {kw: [] for kw in self.data[0]["keywords"].keys()}
-
-            # Step 2: Aggregate results into the temporary structure
-            for kw in temp_data.keys():
-                if kw == keyword:  # Process only the current keyword
-                    temp_data[kw].extend(aggregated_results_with_source_tag)
-
-            # Step 3: Update the main data structure with isolated results
-            for kw, results in temp_data.items():
-                if results:  # Update only if there are results to add
-                    if "scraped_sentences" in self.data[0]["keywords"][kw]:
-                        self.data[0]["keywords"][kw]["scraped_sentences"] = results
+            # Process results for each keyword
+            for keyword in self.keywords:
+                if keyword in temp_files:
+                    # Reset file pointers to beginning
+                    temp_files[keyword]['sentences'].seek(0)
+                    temp_files[keyword]['source_tags'].seek(0)
+                    
+                    # Read results
+                    sentences = [line.strip() for line in temp_files[keyword]['sentences']]
+                    source_tags = [line.strip() for line in temp_files[keyword]['source_tags']]
+                    
+                    # Create aggregated results
+                    aggregated_results_with_source_tag = list(zip(sentences, source_tags))
+                    
+                    # Update the data structure
+                    if "scraped_sentences" in self.data[0]["keywords"][keyword]:
+                        self.data[0]["keywords"][keyword]["scraped_sentences"] = aggregated_results_with_source_tag
                     else:
-                        self.data[0]["keywords"][kw]["scraped_sentences"] = results
+                        self.data[0]["keywords"][keyword]["scraped_sentences"] = aggregated_results_with_source_tag
+                    
+                    # Close and cleanup temporary files
+                    temp_files[keyword]['sentences'].close()
+                    temp_files[keyword]['source_tags'].close()
+                    os.unlink(temp_files[keyword]['sentences'].name)
+                    os.unlink(temp_files[keyword]['source_tags'].name)
 
         return self.to_saged_data()
 
     @ignore_future_warnings
     def scrape_local_with_buffer_files(self):
-
-        temp_dir = 'temp_results'
-        os.makedirs(temp_dir, exist_ok=True)
-
         file_paths = []
         source_tags_list = []
         for sa_dict in self.source_finder:
@@ -604,86 +592,74 @@ class Scraper:
                 file_paths.extend(sa_dict["source_specification"])
                 source_tags_list.extend([sa_dict["source_tag"]] * len(sa_dict["source_specification"]))
 
-        for file_path, source_tag in tqdm(zip(file_paths, source_tags_list), desc='Scraping through loacal files',
-                                          unit='file', total=min(len(file_paths), len(source_tags_list))):
-            path_results = []
-            source_tag_buffer = []
+        # Create a temporary directory that will be automatically cleaned up
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Dictionary to store temporary files for each keyword
+            temp_files = {}
+            
+            for file_path, source_tag in tqdm(zip(file_paths, source_tags_list), desc='Scraping through local files',
+                                            unit='file', total=min(len(file_paths), len(source_tags_list))):
+                path_results = []
+                source_tag_buffer = []
 
-            for keyword in tqdm(self.keywords, desc='Scraping in page', unit='keyword'):
+                for keyword in tqdm(self.keywords, desc='Scraping in page', unit='keyword'):
+                    # Read the file content
+                    with open(file_path, 'r', encoding='utf-8') as file:
+                        text = file.read()
 
-                # Read the file content
-                with open(file_path, 'r', encoding='utf-8') as file:
-                    text = file.read()
+                    # Clean the text by removing citations and other patterns within square brackets
+                    text = text.replace('.\n', '. ').replace('\n', ' ')
+                    clean_text = re.sub(r'\[\d+\]|\[.*?\]', '', text)
 
-                # Clean the text by removing citations and other patterns within square brackets
-                text = text.replace('.\n', '. ').replace('\n', ' ')
-                clean_text = re.sub(r'\[\d+\]|\[.*?\]', '', text)
+                    # Define a regex pattern for the keyword
+                    keyword_regex = re.compile(re.escape(keyword), re.IGNORECASE)
 
-                # Define a regex pattern for the keyword
-                keyword_regex = re.compile(re.escape(keyword), re.IGNORECASE)
+                    # Split the cleaned text into sentences
+                    sentences = re.split(r'(?<=\.)\s+(?=[A-Z])|(?<=\?")\s+|(?<=\.")\s+', clean_text)
 
-                # Split the cleaned text into sentences
-                sentences = re.split(r'(?<=\.)\s+(?=[A-Z])|(?<=\?”)\s+|(?<=\.”)\s+', clean_text)
+                    # Extract desired sentences
+                    for sentence in sentences:
+                        if len(sentence.split()) >= 6 and keyword_regex.search(sentence):
+                            path_results.append(sentence.strip())
+                            source_tag_buffer.append(source_tag)
 
-                # Extract desired sentences
-                for sentence in sentences:
-                    if len(sentence.split()) >= 6 and keyword_regex.search(sentence):
-                        path_results.append(sentence.strip())
-                        source_tag_buffer.append(source_tag)
+                    # Create temporary files for this keyword if they don't exist
+                    if keyword not in temp_files:
+                        temp_files[keyword] = {
+                            'sentences': tempfile.NamedTemporaryFile(mode='w+', encoding='utf-8', delete=False),
+                            'source_tags': tempfile.NamedTemporaryFile(mode='w+', encoding='utf-8', delete=False)
+                        }
 
-                # Store results in a temporary file
-                temp_file = os.path.join(temp_dir,
-                                         f'{file_path.replace(".", "_").replace("/", "_")}_{keyword}.txt')
-                with open(temp_file, 'w', encoding='utf-8') as f:
+                    # Write results to temporary files
                     for sentence in path_results:
-                        f.write(f'{sentence}\n')
+                        temp_files[keyword]['sentences'].write(f'{sentence}\n')
+                    for tag in source_tag_buffer:
+                        temp_files[keyword]['source_tags'].write(f'{tag}\n')
 
-                temp_file_source_tag = os.path.join(temp_dir,
-                                                    f'{file_path.replace(".", "_").replace("/", "_")}_{keyword}_source_tag.txt')
-                with open(temp_file_source_tag, 'w', encoding='utf-8') as f:
-                    for source_tag in source_tag_buffer:
-                        f.write(f'{source_tag}\n')
-
-        for keyword in self.keywords:
-            aggregated_results = []
-            aggregated_source_tags = []
-            for file_path in file_paths:
-                temp_file = os.path.join(temp_dir,
-                                         f'{file_path.replace(".", "_").replace("/", "_")}_{keyword}.txt')
-                temp_file_source_tag = os.path.join(temp_dir,
-                                                    f'{file_path.replace(".", "_").replace("/", "_")}_{keyword}_source_tag.txt')
-                if os.path.exists(temp_file) and os.path.exists(temp_file_source_tag):
-                    with open(temp_file, 'r', encoding='utf-8') as f:
-                        sentences = f.readlines()
-                        aggregated_results.extend([sentence.strip() for sentence in sentences])
-                    with open(temp_file_source_tag, 'r', encoding='utf-8') as f:
-                        source_tags = f.readlines()
-                        aggregated_source_tags.extend([source_tag.strip() for source_tag in source_tags])
-                    os.remove(temp_file)
-                    os.remove(temp_file_source_tag)
-            aggregated_results_with_source_tag = list(zip(aggregated_results, aggregated_source_tags))
-
-            # # Store aggregated results in the data structure
-            # if "scraped_sentences" in self.data[0]["keywords"][keyword].keys():
-            #     self.data[0]["keywords"][keyword]["scraped_sentences"].extend(
-            #         aggregated_results_with_source_tag)
-            # else:
-            #     self.data[0]["keywords"][keyword]["scraped_sentences"] = aggregated_results_with_source_tag
-
-            # Step 1: Create a temporary data structure for each keyword
-            temp_data = {kw: [] for kw in self.data[0]["keywords"].keys()}
-
-            # Step 2: Aggregate results into the temporary structure
-            for kw in temp_data.keys():
-                if kw == keyword:  # Process only the current keyword
-                    temp_data[kw].extend(aggregated_results_with_source_tag)
-
-            # Step 3: Update the main data structure with isolated results
-            for kw, results in temp_data.items():
-                if results:  # Update only if there are results to add
-                    if "scraped_sentences" in self.data[0]["keywords"][kw]:
-                        self.data[0]["keywords"][kw]["scraped_sentences"] = results
+            # Process results for each keyword
+            for keyword in self.keywords:
+                if keyword in temp_files:
+                    # Reset file pointers to beginning
+                    temp_files[keyword]['sentences'].seek(0)
+                    temp_files[keyword]['source_tags'].seek(0)
+                    
+                    # Read results
+                    sentences = [line.strip() for line in temp_files[keyword]['sentences']]
+                    source_tags = [line.strip() for line in temp_files[keyword]['source_tags']]
+                    
+                    # Create aggregated results
+                    aggregated_results_with_source_tag = list(zip(sentences, source_tags))
+                    
+                    # Update the data structure
+                    if "scraped_sentences" in self.data[0]["keywords"][keyword]:
+                        self.data[0]["keywords"][keyword]["scraped_sentences"] = aggregated_results_with_source_tag
                     else:
-                        self.data[0]["keywords"][kw]["scraped_sentences"] = results
+                        self.data[0]["keywords"][keyword]["scraped_sentences"] = aggregated_results_with_source_tag
+                    
+                    # Close and cleanup temporary files
+                    temp_files[keyword]['sentences'].close()
+                    temp_files[keyword]['source_tags'].close()
+                    os.unlink(temp_files[keyword]['sentences'].name)
+                    os.unlink(temp_files[keyword]['source_tags'].name)
 
         return self.to_saged_data()
