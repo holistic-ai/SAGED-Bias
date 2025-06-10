@@ -15,6 +15,7 @@ import PromptAssemblerConfig from './build_forms/PromptAssemblerConfig';
 import SourceSelection from './build_forms/SourceSelection';
 import FormValidator from './build_forms/FormValidator';
 import BenchmarkResults from './BenchmarkResults';
+import { API_ENDPOINTS } from '../config/api';
 
 const BenchmarkConfigForm: React.FC = () => {
     const [config, setConfig] = useState<DomainBenchmarkConfig>(defaultConfig);
@@ -42,7 +43,7 @@ const BenchmarkConfigForm: React.FC = () => {
 
         // Log what is being sent to the backend
         console.log('Sending data to backend:', {
-            url: 'http://localhost:8000/benchmark/build',
+            url: API_ENDPOINTS.BENCHMARK.BUILD,
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -51,7 +52,7 @@ const BenchmarkConfigForm: React.FC = () => {
         });
 
         try {
-            const response = await fetch('http://localhost:8000/benchmark/build', {
+            const response = await fetch(API_ENDPOINTS.BENCHMARK.BUILD, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

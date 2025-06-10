@@ -130,7 +130,7 @@ class DatabaseService:
             'use_database': True,
             'database_type': 'sql',
             'database_connection': self.database_url,
-            'source_text_table': cls.source_text_table
+            'source_text_table': self.source_text_table
         }
     
     def get_table_name(self, data_tier: str, domain: str) -> str:

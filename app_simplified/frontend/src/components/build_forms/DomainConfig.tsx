@@ -7,7 +7,6 @@ import { Button } from '../ui/button';
 import { Alert } from '../ui/alert';
 import { FormSwitch } from '../ui/form-switch';
 import KeywordFinderConfig from './KeywordFinderConfig';
-import { API_ENDPOINTS } from '../../config/api';
 
 interface DomainConfigProps {
     config: DomainBenchmarkConfig;
@@ -81,11 +80,13 @@ const DomainConfig: React.FC<DomainConfigProps> = ({ config, onConfigChange }) =
             return;
         }
 
-        // Create concept-specific configs with manual keywords
-        const updatedConceptConfig: Record<string, any> = {};
+        // Update concept-specific configs while preserving existing configurations
+        const updatedConceptConfig = { ...tempConfig.concept_specified_config };
         Object.entries(conceptKeywords).forEach(([concept, keywords]) => {
             updatedConceptConfig[concept] = {
+                ...updatedConceptConfig[concept], // Preserve existing config
                 keyword_finder: {
+                    ...updatedConceptConfig[concept]?.keyword_finder, // Preserve existing keyword finder config
                     manual_keywords: keywords
                 }
             };

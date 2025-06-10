@@ -30,6 +30,7 @@ const SourceSelection: React.FC<SourceSelectionProps> = ({ config, onConfigChang
     const [selectedSource, setSelectedSource] = useState<number | null>(null);
     const [uploadError, setUploadError] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Handles new file uploads, uploading them to the backend
     const handleFilesChange = async (files: File[]) => {
@@ -37,7 +38,33 @@ const SourceSelection: React.FC<SourceSelectionProps> = ({ config, onConfigChang
         setUploadError(null);
         
         try {
-            // Upload each file and get their paths
+            // First, delete any removed files from the database
+            // Find files to delete (in current sources but not in new files)
+            const filesToDelete = sources.filter(source => 
+                source.uploadedPath && !files.some(f => f.name === source.file.name)
+            );
+
+            // Delete removed files from database
+            if (filesToDelete.length > 0) {
+                setIsDeleting(true);
+                try {
+                    await Promise.all(filesToDelete.map(async (source) => {
+                        if (source.uploadedPath) {
+                            await axios.delete(
+                                API_ENDPOINTS.FILES.DELETE(config.domain, source.uploadedPath)
+                            );
+                        }
+                    }));
+                } catch (error) {
+                    console.error('Error deleting files:', error);
+                    setUploadError('Failed to delete some files. Please try again.');
+                    return;
+                } finally {
+                    setIsDeleting(false);
+                }
+            }
+
+            // Upload new files
             const uploadPromises = files.map(async (file) => {
                 const formData = new FormData();
                 formData.append('file', file);
@@ -61,9 +88,12 @@ const SourceSelection: React.FC<SourceSelectionProps> = ({ config, onConfigChang
 
             const uploadedSources = await Promise.all(uploadPromises);
             setSources(uploadedSources);
+
+            // Update config with new sources
+            updateSourceConfig(showSourceFinder);
         } catch (error) {
-            console.error('Error uploading files:', error);
-            setUploadError('Failed to upload files. Please check if the backend server is running and try again.');
+            console.error('Error handling files:', error);
+            setUploadError('Failed to handle files. Please check if the backend server is running and try again.');
         } finally {
             setIsUploading(false);
         }
@@ -79,19 +109,56 @@ const SourceSelection: React.FC<SourceSelectionProps> = ({ config, onConfigChang
         setSources(prev => prev.map((source, i) => 
             i === index ? { ...source, concepts } : source
         ));
+        // Update config when concepts change
+        updateSourceConfig(showSourceFinder);
     };
 
-    // Updates shared_config.source_finder with local files or Wikipedia settings
+    // Updates shared_config.source_finder and concept_specified_config with local files or Wikipedia settings
     const updateSourceConfig = (useWikipedia: boolean) => {
+        // Create concept-specific source configurations
+        const updatedConceptConfig = { ...config.concept_specified_config };
+        
+        // Group sources by concept
+        const conceptSources: Record<string, string[]> = {};
+        sources.forEach(source => {
+            source.concepts.forEach(concept => {
+                if (!conceptSources[concept]) {
+                    conceptSources[concept] = [];
+                }
+                if (source.uploadedPath) {
+                    conceptSources[concept].push(source.uploadedPath);
+                }
+            });
+        });
+
+        // Update concept-specific configs only for concepts that have sources
+        Object.entries(conceptSources).forEach(([concept, paths]) => {
+            // Only update if we have paths for this concept
+            if (paths.length > 0) {
+                updatedConceptConfig[concept] = {
+                    ...updatedConceptConfig[concept], // Preserve existing config
+                    source_finder: {
+                        ...updatedConceptConfig[concept]?.source_finder, // Preserve existing source finder config
+                        manual_sources: paths
+                    }
+                };
+            }
+        });
+
+        const method = useWikipedia ? 'wiki' : 'local_files';
         const updatedConfig = {
             ...config,
+            concept_specified_config: updatedConceptConfig,
             shared_config: {
                 ...config.shared_config,
                 source_finder: {
                     ...config.shared_config.source_finder,
                     require: true,
-                    method: useWikipedia ? 'wiki' : 'local_files',
-                    manual_sources: useWikipedia ? [] : sources.map(source => source.file.name)
+                    method
+                },
+                scraper: {
+                    ...config.shared_config.scraper,
+                    method // Sync scraper method with source finder method
                 }
             }
         };
@@ -125,13 +192,15 @@ const SourceSelection: React.FC<SourceSelectionProps> = ({ config, onConfigChang
                             <FileUploadList
                                 files={sources.map(s => s.file)}
                                 onFilesChange={handleFilesChange}
-                                disabled={showSourceFinder || isUploading}
+                                disabled={showSourceFinder || isUploading || isDeleting}
                                 label="Upload Source Files"
                                 emptyMessage="No source files uploaded. Click 'Upload Source Files' to add sources."
                                 accept=".txt"
                             />
-                            {isUploading && (
-                                <div className="text-sm text-gray-500">Uploading files...</div>
+                            {(isUploading || isDeleting) && (
+                                <div className="text-sm text-gray-500">
+                                    {isUploading ? 'Uploading files...' : 'Deleting files...'}
+                                </div>
                             )}
                             {uploadError && (
                                 <Alert variant="destructive" className="mt-2">

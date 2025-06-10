@@ -3,6 +3,7 @@ export interface DatabaseConfig {
     database_type: string;      // Used in DomainConfig for database type selection (default: "sqlite")
     database_connection: string; // Used in DomainConfig for connection string (default: "")
     table_prefix: string;       // Used in DomainConfig for table naming (default: "saged_")
+    source_text_table: string;  // Used for source text table name (default: "source_texts")
 }
 
 export interface KeywordFinderConfig {
@@ -32,7 +33,7 @@ export interface SourceFinderConfig {
     saving: boolean;           // Used in SourceFinderConfig for save settings (default: true)
     saving_location: string;   // Used in SourceFinderConfig for save location (default: "default")
     scrape_backlinks: number;   // Used in SourceFinderConfig for number of backward links to gather (default: 0)
-    manual_sources?: string[];  // Used in SourceSelection for storing uploaded file names
+    manual_sources?: string[];  // Used in SourceSelection for storing uploaded file paths
 }
 
 export interface ScraperConfig {
@@ -86,13 +87,16 @@ export interface BranchingConfig {
 
 export interface DomainBenchmarkConfig {
     domain: string;        // Used in DomainConfig for main topic name input
-    concepts: string[];         // Used in DomainConfig for concept list management
-    branching: boolean;         // Used in PromptAssemblerBranching to enable/disable (default: false)
+    concepts: string[];    // Used in DomainConfig for concept list management
+    branching: boolean;    // Used in PromptAssemblerBranching to enable/disable (default: false)
     branching_config?: BranchingConfig; // Used in PromptAssemblerBranching for settings (all defaults)
     shared_config: ConceptBenchmarkConfig; // Used across all config components
     concept_specified_config: Record<string, {  // Used in DomainConfig for concept-specific settings
         keyword_finder?: {                      // Each concept can have its own keyword finder config
             manual_keywords?: string[];         // Manual keywords specific to this concept
+        };
+        source_finder?: {                       // Each concept can have its own source finder config
+            manual_sources?: string[];          // Manual sources specific to this concept
         };
     }>;                                        // Default: {}
     saving: boolean;           // Used in DomainConfig for save settings (default: true)
@@ -166,7 +170,8 @@ export const defaultConfig: DomainBenchmarkConfig = {
         use_database: false,
         database_type: "sql",
         database_connection: "",
-        table_prefix: ""
+        table_prefix: "",
+        source_text_table: "source_texts"
     },
     branching_config: {
         branching_pairs: "not_all",

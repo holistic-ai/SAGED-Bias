@@ -27,6 +27,14 @@ const FormValidator: React.FC<FormValidatorProps> = ({ config, onClose, open, on
     }
     if (!config.shared_config.source_finder.require) {
         validationErrors.push('Please configure your sources (either upload files or use Wikipedia)');
+    } else if (config.shared_config.source_finder.method === 'local_files') {
+        // Check if any concept has sources configured
+        const hasSources = Object.values(config.concept_specified_config).some(
+            conceptConfig => conceptConfig.source_finder?.manual_sources && conceptConfig.source_finder.manual_sources.length > 0
+        );
+        if (!hasSources) {
+            validationErrors.push('Please upload and assign sources to at least one concept');
+        }
     }
     if (!config.shared_config.prompt_assembler.method) {
         validationErrors.push('Please select a prompt assembly method');
