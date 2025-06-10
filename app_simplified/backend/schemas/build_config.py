@@ -3,10 +3,29 @@ from pydantic import BaseModel
 from datetime import datetime
 
 class DatabaseConfig(BaseModel):
-    use_database: bool = True
-    database_type: str = "sql"
-    database_connection: str = "sqlite:///./data/db/saged_app.db"
+    use_database: bool = False
+    database_type: str = "json"
+    database_connection: str = "data/customized/database"
     table_prefix: str = ""
+    source_text_table: str = "source_texts"
+
+class FileServiceConfig(BaseModel):
+    """Configuration for the file service"""
+    database_config: DatabaseConfig = DatabaseConfig()
+    current_table: str = "source_texts"  # Current active table name
+
+    def update_table(self, new_table: str) -> None:
+        """Update the current table name and database config"""
+        self.current_table = new_table
+        self.database_config.source_text_table = new_table
+
+class LLMInquiriesConfig(BaseModel):
+    n_run: int = 20
+    n_keywords: int = 20
+    generation_function: Optional[Any] = None
+    model_name: Optional[str] = None
+    embedding_model: Optional[str] = None
+    show_progress: bool = True
 
 class KeywordFinderConfig(BaseModel):
     require: bool = True
@@ -14,7 +33,7 @@ class KeywordFinderConfig(BaseModel):
     method: str = "embedding_on_wiki"
     keyword_number: int = 7
     hyperlinks_info: List[Any] = []
-    llm_info: Dict[str, Any] = {}
+    llm_info: LLMInquiriesConfig = LLMInquiriesConfig()
     max_adjustment: int = 150
     embedding_model: str = "paraphrase-Mpnet-base-v2"
     saving: bool = True
@@ -81,6 +100,39 @@ class DomainBenchmarkConfig(BaseModel):
     saving_location: str = "default"
     database_config: DatabaseConfig = DatabaseConfig()
 
+class AnalyticsConfig(BaseModel):
+    database_config: DatabaseConfig = DatabaseConfig()
+    generation: Dict[str, Any] = {
+        "require": True,
+        "generate_dict": {},
+        "generation_saving_location": 'data/customized/_sbg_benchmark.csv',
+        "generation_list": [],
+        "baseline": 'baseline',
+    }
+    extraction: Dict[str, Any] = {
+        "feature_extractors": [
+            'personality_classification',
+            'toxicity_classification',
+            'sentiment_classification',
+            'stereotype_classification',
+            'regard_classification'
+        ],
+        'extractor_configs': {},
+        "calibration": True,
+        "extraction_saving_location": 'data/customized/_sbge_benchmark.csv',
+    }
+    analysis: Dict[str, Any] = {
+        "specifications": ['concept', 'source_tag'],
+        "analyzers": ['mean', 'selection_rate', 'precision'],
+        "analyzer_configs": {
+            'selection_rate': {'standard_by': 'mean'},
+            'precision': {'tolerance': 0.1}
+        },
+        'statistics_saving_location': 'data/customized/_sbgea_statistics.csv',
+        "disparity_saving_location": 'data/customized/_sbgea_disparity.csv',
+    }
+
+# Database Models
 class KeywordsData(BaseModel):
     id: Optional[int]
     domain: str

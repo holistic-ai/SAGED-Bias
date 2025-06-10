@@ -1,9 +1,9 @@
-import os
-import shutil
-from datetime import datetime
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from fastapi import UploadFile
+from sqlalchemy import create_engine, text
+from app_simplified.backend.schemas.build_config import DatabaseConfig
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(
@@ -13,99 +13,136 @@ logging.basicConfig(
 logger = logging.getLogger('FileService')
 
 class FileService:
-    def __init__(self):
-        # Create uploads directory if it doesn't exist
-        self.uploads_dir = os.path.abspath("data/uploads")
-        os.makedirs(self.uploads_dir, exist_ok=True)
-        logger.info(f"FileService initialized with uploads directory: {self.uploads_dir}")
+    def __init__(self, database_config: Optional[DatabaseConfig] = None):
+        # Initialize database configuration
+        self.database_config = database_config or DatabaseConfig()
+        if not self.database_config.use_database:
+            raise ValueError("Database must be enabled for FileService")
+        
+        if self.database_config.database_type != 'sql':
+            raise ValueError("Only SQL database type is supported")
+            
+        self.engine = create_engine(self.database_config.database_connection)
+        self._ensure_source_text_table()
+        logger.info(f"FileService initialized with database: {self.database_config.database_connection}")
 
-    def get_upload_path(self, domain: str) -> str:
-        """Get the upload path for a specific domain"""
-        domain_dir = os.path.join(self.uploads_dir, domain)
-        os.makedirs(domain_dir, exist_ok=True)
-        return domain_dir
+    def _ensure_source_text_table(self):
+        """Ensure the source text table exists in the database"""
+        try:
+            table_name = self.database_config.source_text_table
+            with self.engine.connect() as conn:
+                # Create table if it doesn't exist
+                create_table_query = text(f"""
+                    CREATE TABLE IF NOT EXISTS {table_name} (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        file_path TEXT UNIQUE NOT NULL,
+                        content TEXT NOT NULL,
+                        domain TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                conn.execute(create_table_query)
+                conn.commit()
+            logger.info(f"Ensured source text table exists: {table_name}")
+        except Exception as e:
+            logger.error(f"Error ensuring source text table: {str(e)}")
+            raise
 
     async def save_uploaded_file(self, file: UploadFile, domain: str) -> str:
         """
-        Save an uploaded file to the domain's directory
+        Save an uploaded file's content to the database
         
         Args:
             file: The uploaded file
             domain: The domain name
             
         Returns:
-            str: The path where the file was saved
+            str: The file path used as the identifier in the database
         """
         try:
-            # Create domain-specific directory
-            domain_dir = self.get_upload_path(domain)
-            
-            # Generate unique filename with timestamp
+            # Generate unique identifier with timestamp
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{timestamp}_{file.filename}"
-            file_path = os.path.join(domain_dir, filename)
+            file_path = f"{domain}/{timestamp}_{file.filename}"
             
-            # Save the file
-            with open(file_path, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
+            # Read file content
+            content = await file.read()
+            content_str = content.decode('utf-8')
             
-            logger.info(f"File saved successfully: {file_path}")
+            # Store in database
+            with self.engine.connect() as conn:
+                query = text(f"""
+                    INSERT OR REPLACE INTO {self.database_config.source_text_table} 
+                    (file_path, content, domain)
+                    VALUES (:file_path, :content, :domain)
+                """)
+                conn.execute(query, {
+                    "file_path": file_path,
+                    "content": content_str,
+                    "domain": domain
+                })
+                conn.commit()
+            
+            logger.info(f"File content saved to database: {file_path}")
             return file_path
             
         except Exception as e:
-            logger.error(f"Error saving file: {str(e)}")
-            raise Exception(f"Failed to save file: {str(e)}")
+            logger.error(f"Error saving file content: {str(e)}")
+            raise Exception(f"Failed to save file content: {str(e)}")
+
+    def get_file_content(self, file_path: str) -> str:
+        """Retrieve text content from the database using file_path as identifier"""
+        try:
+            with self.engine.connect() as conn:
+                query = text(f"SELECT content FROM {self.database_config.source_text_table} WHERE file_path = :file_path")
+                result = conn.execute(query, {"file_path": file_path}).first()
+                if result:
+                    return result[0]
+                raise FileNotFoundError(f"No content found for file path: {file_path}")
+        except Exception as e:
+            logger.error(f"Error retrieving content: {str(e)}")
+            raise Exception(f"Failed to retrieve content: {str(e)}")
 
     def get_domain_files(self, domain: str) -> List[str]:
-        """Get list of files for a specific domain"""
+        """Get list of file paths for a specific domain from the database"""
         try:
-            domain_dir = self.get_upload_path(domain)
-            files = [f for f in os.listdir(domain_dir) if os.path.isfile(os.path.join(domain_dir, f))]
-            return files
+            with self.engine.connect() as conn:
+                query = text(f"SELECT file_path FROM {self.database_config.source_text_table} WHERE domain = :domain")
+                results = conn.execute(query, {"domain": domain}).fetchall()
+                return [row[0] for row in results]
         except Exception as e:
             logger.error(f"Error getting domain files: {str(e)}")
             return []
 
     def delete_file(self, file_path: str) -> bool:
-        """Delete a file"""
+        """Delete a file's content from the database"""
         try:
-            if os.path.exists(file_path):
-                os.remove(file_path)
-                logger.info(f"File deleted successfully: {file_path}")
-                return True
-            return False
+            with self.engine.connect() as conn:
+                query = text(f"DELETE FROM {self.database_config.source_text_table} WHERE file_path = :file_path")
+                result = conn.execute(query, {"file_path": file_path})
+                conn.commit()
+                deleted = result.rowcount > 0
+                if deleted:
+                    logger.info(f"File content deleted from database: {file_path}")
+                return deleted
         except Exception as e:
-            logger.error(f"Error deleting file: {str(e)}")
+            logger.error(f"Error deleting file content: {str(e)}")
             return False
 
     def cleanup_domain_files(self, domain: str) -> bool:
-        """Clean up all files for a domain"""
+        """Clean up all files for a domain from the database"""
         try:
-            domain_dir = self.get_upload_path(domain)
-            if os.path.exists(domain_dir):
-                shutil.rmtree(domain_dir)
-                logger.info(f"Domain files cleaned up successfully: {domain_dir}")
-                return True
-            return False
+            with self.engine.connect() as conn:
+                query = text(f"DELETE FROM {self.database_config.source_text_table} WHERE domain = :domain")
+                result = conn.execute(query, {"domain": domain})
+                conn.commit()
+                deleted = result.rowcount > 0
+                if deleted:
+                    logger.info(f"Domain files cleaned up from database: {domain}")
+                return deleted
         except Exception as e:
             logger.error(f"Error cleaning up domain files: {str(e)}")
             return False
 
-    def get_file_content(self, file_path: str) -> str:
-        """Read the content of a file"""
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                return f.read()
-        except Exception as e:
-            logger.error(f"Error reading file: {str(e)}")
-            raise Exception(f"Failed to read file: {str(e)}")
-
     def get_domain_file_paths(self, domain: str) -> List[str]:
-        """Get full paths of all files for a domain"""
-        try:
-            domain_dir = self.get_upload_path(domain)
-            return [os.path.join(domain_dir, f) for f in os.listdir(domain_dir) 
-                   if os.path.isfile(os.path.join(domain_dir, f))]
-        except Exception as e:
-            logger.error(f"Error getting domain file paths: {str(e)}")
-            return [] 
+        """Get all file paths for a domain from the database"""
+        return self.get_domain_files(domain) 

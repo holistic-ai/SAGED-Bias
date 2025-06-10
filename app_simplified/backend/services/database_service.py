@@ -16,6 +16,11 @@ import json
 logger = logging.getLogger(__name__)
 
 class DatabaseService:
+
+
+    source_text_table = 'source_texts'
+
+
     def __init__(self):
         # Create data directory if it doesn't exist
         os.makedirs("data/db", exist_ok=True)
@@ -124,7 +129,8 @@ class DatabaseService:
         return {
             'use_database': True,
             'database_type': 'sql',
-            'database_connection': self.database_url
+            'database_connection': self.database_url,
+            'source_text_table': cls.source_text_table
         }
     
     def get_table_name(self, data_tier: str, domain: str) -> str:
