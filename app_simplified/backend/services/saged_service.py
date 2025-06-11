@@ -175,19 +175,35 @@ class SagedService:
             
             # Check if we need to use question generation
             generation_function = None
-            model_info = None
+            model_info = {
+                'model_name': self.model_service.model_name,
+                'is_azure': self.model_service.is_azure,
+                'deployment_name': self.model_service.model_name if self.model_service.is_azure else None
+            }
+
             if 'prompt_assembler' in shared_config and shared_config['prompt_assembler'].get('method') == 'questions':
                 logger.info("Question generation method detected, creating generation function")
                 # Create generation function with default model and system prompt
                 generation_function = self.model_service.create_generation_function()
-                # Store model information for metadata
-                model_info = {
-                    'model_name': self.model_service.model_name,
-                    'is_azure': self.model_service.is_azure,
-                    'deployment_name': self.model_service.model_name if self.model_service.is_azure else None
-                }
                 # Add the generation function to the prompt assembler config
                 shared_config['prompt_assembler']['generation_function'] = generation_function
+
+            # Handle generation function for branching if needed
+            if config_dict.get('branching', False) and config_dict.get('branching_config', {}).get('replacement_descriptor_require', False):
+                logger.info("Replacement descriptor generation required, creating generation function")
+                if generation_function is None:
+                    generation_function = self.model_service.create_generation_function()
+                config_dict['branching_config']['generation_function'] = generation_function
+
+            # Handle generation function for keyword finder if needed
+            if shared_config.get('keyword_finder', {}).get('require', False) and shared_config['keyword_finder'].get('method') == 'llm_inquiries':
+                logger.info("LLM inquiries method detected for keyword finder, creating generation function")
+                if generation_function is None:
+                    generation_function = self.model_service.create_generation_function()
+                if 'llm_info' not in shared_config['keyword_finder']:
+                    shared_config['keyword_finder']['llm_info'] = {}
+                shared_config['keyword_finder']['llm_info']['generation_function'] = generation_function
+                shared_config['keyword_finder']['llm_info']['model_name'] = self.model_service.model_name
             
             # Print the config dictionary
             logger.info("Config dictionary:")
@@ -202,10 +218,24 @@ class SagedService:
             # Create a copy of config_dict for metadata storage
             metadata_config = copy.deepcopy(config_dict)
             # Replace generation function with model info in the metadata config
-            if generation_function and 'prompt_assembler' in metadata_config['shared_config']:
-                metadata_config['shared_config']['prompt_assembler'].pop('generation_function', None)
-                if model_info:
-                    metadata_config['shared_config']['prompt_assembler']['generation_function'] = model_info
+            if generation_function:
+                # Handle prompt assembler
+                if 'prompt_assembler' in metadata_config['shared_config']:
+                    metadata_config['shared_config']['prompt_assembler'].pop('generation_function', None)
+                    if model_info:
+                        metadata_config['shared_config']['prompt_assembler']['generation_function'] = model_info
+                
+                # Handle branching config
+                if metadata_config.get('branching', False) and 'branching_config' in metadata_config:
+                    metadata_config['branching_config'].pop('generation_function', None)
+                    if model_info:
+                        metadata_config['branching_config']['generation_function'] = model_info
+                
+                # Handle keyword finder
+                if 'keyword_finder' in metadata_config['shared_config'] and 'llm_info' in metadata_config['shared_config']['keyword_finder']:
+                    metadata_config['shared_config']['keyword_finder']['llm_info'].pop('generation_function', None)
+                    if model_info:
+                        metadata_config['shared_config']['keyword_finder']['llm_info']['generation_function'] = model_info
             
             # Get the data from the benchmark result
             logger.debug("Processing benchmark results")

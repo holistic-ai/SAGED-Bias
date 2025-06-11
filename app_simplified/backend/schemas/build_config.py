@@ -23,7 +23,7 @@ class LLMInquiriesConfig(BaseModel):
     n_run: int = 20
     n_keywords: int = 20
     generation_function: Optional[Any] = None
-    model_name: Optional[str] = None
+    # model_name: Optional[str] = None
     embedding_model: Optional[str] = None
     show_progress: bool = True
 
