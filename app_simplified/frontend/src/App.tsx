@@ -1,6 +1,10 @@
 import React from 'react';
-import { CssBaseline, ThemeProvider, createTheme, Container, Box } from '@mui/material';
-import BenchmarkConfigForm from './components/build_forms';
+import { CssBaseline, ThemeProvider, createTheme, Box } from '@mui/material';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import BenchmarkConfig from './pages/BenchmarkConfig';
+import BenchmarkV2 from './pages/BenchmarkV2';
+import Navigation from './components/Navigation';
 
 const theme = createTheme({
   palette: {
@@ -18,11 +22,18 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <BenchmarkConfigForm />
+      <Router>
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <Navigation />
+          <Box component="main" sx={{ flexGrow: 1 }}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/benchmark" element={<BenchmarkConfig />} />
+              <Route path="/benchmark-v2" element={<BenchmarkV2 />} />
+            </Routes>
+          </Box>
         </Box>
-      </Container>
+      </Router>
     </ThemeProvider>
   );
 }

@@ -1,12 +1,32 @@
-import React from 'react'
+import React from 'react';
+import { Box, Container, Typography, Button } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 const Home: React.FC = () => {
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-4">Home Page</h1>
-      <p className="text-gray-600">Welcome to the home page of our simplified app.</p>
-    </div>
-  )
-}
+  const navigate = useNavigate();
 
-export default Home 
+  return (
+    <Container maxWidth="lg">
+      <Box sx={{ py: 8, textAlign: 'center' }}>
+        <Typography variant="h2" component="h1" gutterBottom>
+          Welcome to SAGED
+        </Typography>
+        <Typography variant="h5" color="text.secondary" paragraph>
+          A powerful tool for benchmarking and analyzing AI models
+        </Typography>
+        <Box sx={{ mt: 4 }}>
+          <Button
+            variant="contained"
+            size="large"
+            onClick={() => navigate('/benchmark')}
+            sx={{ mr: 2 }}
+          >
+            Start Benchmark
+          </Button>
+        </Box>
+      </Box>
+    </Container>
+  );
+};
+
+export default Home; 
