@@ -10,6 +10,7 @@ const Navigation: React.FC = () => {
     { label: 'Home', path: '/' },
     { label: 'Benchmark', path: '/benchmark' },
     { label: 'Benchmark V2', path: '/benchmark-v2' },
+    { label: 'Metadata Repository', path: '/metadata' },
   ];
 
   return (

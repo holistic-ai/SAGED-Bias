@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import BenchmarkConfig from './pages/BenchmarkConfig';
 import BenchmarkV2 from './pages/BenchmarkV2';
+import MetadataRepository from './pages/MetadataRepository';
 import Navigation from './components/Navigation';
 
 const theme = createTheme({
@@ -30,6 +31,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/benchmark" element={<BenchmarkConfig />} />
               <Route path="/benchmark-v2" element={<BenchmarkV2 />} />
+              <Route path="/metadata" element={<MetadataRepository />} />
             </Routes>
           </Box>
         </Box>

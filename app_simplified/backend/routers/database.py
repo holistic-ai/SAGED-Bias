@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from app_simplified.backend.services.database_service import DatabaseService
+from app_simplified.backend.schemas.build_config import BenchmarkMetadata
 
 router = APIRouter(
     prefix="/db",
@@ -71,5 +72,39 @@ async def get_benchmark_status(domain: str):
             status[tier] = data is not None
         
         return status
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/metadata", response_model=Dict[str, List[Dict[str, Any]]])
+async def get_all_metadata():
+    """
+    Get all benchmark metadata from all tables.
+    
+    Returns:
+        Dict[str, List[Dict[str, Any]]]: A dictionary where keys are metadata table names
+        and values are lists of metadata records from each table.
+    """
+    try:
+        metadata = db_service.list_benchmark_metadata()
+        if not metadata:
+            raise HTTPException(status_code=404, detail="No metadata found")
+        return metadata
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/benchmark-metadata", response_model=Dict[str, List[BenchmarkMetadata]])
+async def get_benchmark_metadata():
+    """
+    Get all benchmark metadata from tables starting with metadata_benchmark_.
+    
+    Returns:
+        Dict[str, List[BenchmarkMetadata]]: A dictionary where keys are metadata table names
+        and values are lists of BenchmarkMetadata objects from each table.
+    """
+    try:
+        metadata = db_service.list_benchmark_metadata()
+        if not metadata:
+            raise HTTPException(status_code=404, detail="No benchmark metadata found")
+        return metadata
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 

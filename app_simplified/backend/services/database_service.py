@@ -6,9 +6,10 @@ import pandas as pd
 import uuid
 from ..schemas.build_config import (
     KeywordsData, SourceFinderData, ScrapedSentencesData,
-    ReplacementDescriptionData, BenchmarkData, AllDataTiersResponse
+    ReplacementDescriptionData, BenchmarkData, AllDataTiersResponse,
+    BenchmarkMetadata
 )
-from typing import List, Optional
+from typing import List, Optional, Dict
 from sqlalchemy.exc import SQLAlchemyError
 import logging
 import json
@@ -18,16 +19,18 @@ logger = logging.getLogger(__name__)
 class DatabaseService:
 
 
+     # Class attributes for consistent paths
     source_text_table = 'source_texts'
+    _current_file_dir = os.path.dirname(os.path.abspath(__file__))
+    _project_root = os.path.abspath(os.path.join(_current_file_dir, "..", ".."))
+    _db_dir = os.path.join(_project_root, 'backend', "data", "db")
+    _db_path = os.path.join(_db_dir, "saged_app.db")
 
 
     def __init__(self):
-        # Create data directory if it doesn't exist
-        os.makedirs("data/db", exist_ok=True)
-        
-        # SQLite database URL with absolute path
-        db_path = os.path.abspath("data/db/saged_app.db")
-        self.database_url = f"sqlite:///{db_path}"
+        os.makedirs(self._db_dir, exist_ok=True)
+
+        self.database_url = f"sqlite:///{self._db_path}"
         
         # Create engine
         self.engine = create_engine(
@@ -310,4 +313,50 @@ class DatabaseService:
                 logger.info(f"Successfully saved benchmark metadata to {table_name}")
         except SQLAlchemyError as e:
             logger.error(f"Failed to save benchmark metadata: {str(e)}")
-            raise Exception(f"Failed to save benchmark metadata: {str(e)}") 
+            raise Exception(f"Failed to save benchmark metadata: {str(e)}")
+
+    def list_benchmark_metadata(self) -> Dict[str, List[BenchmarkMetadata]]:
+        """Retrieve all benchmark metadata from tables starting with metadata_benchmark_
+        
+        Returns:
+            Dict[str, List[BenchmarkMetadata]]: Dictionary mapping table names to their metadata entries
+        """
+        try:
+            with self.engine.connect() as conn:
+                # Get all tables starting with metadata_benchmark_
+                result = conn.execute(text("""
+                    SELECT name FROM sqlite_master 
+                    WHERE type='table' AND name LIKE 'metadata_benchmark_%'
+                """))
+                tables = [row[0] for row in result.fetchall()]
+                
+                metadata_dict = {}
+                for table in tables:
+                    # Get all entries from each metadata table
+                    result = conn.execute(text(f"SELECT * FROM {table}"))
+                    rows = result.fetchall()
+                    
+                    # Convert each row to BenchmarkMetadata
+                    metadata_list = []
+                    for row in rows:
+                        # Convert row to dict and parse JSON fields
+                        row_dict = dict(row._mapping)
+                        metadata = BenchmarkMetadata(
+                            id=row_dict['id'],
+                            domain=row_dict['domain'],
+                            data=json.loads(row_dict['data']) if row_dict['data'] else None,
+                            table_names=json.loads(row_dict['table_names']),
+                            configuration=json.loads(row_dict['configuration']),
+                            database_config=json.loads(row_dict['database_config']),
+                            time_stamp=row_dict['time_stamp'],
+                            created_at=row_dict['created_at']
+                        )
+                        metadata_list.append(metadata)
+                    
+                    metadata_dict[table] = metadata_list
+                
+                return metadata_dict
+                
+        except SQLAlchemyError as e:
+            logger.error(f"Failed to list benchmark metadata: {str(e)}")
+            raise Exception(f"Failed to list benchmark metadata: {str(e)}") 
