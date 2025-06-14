@@ -2,18 +2,13 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Button,
   CircularProgress,
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { BenchmarkMetadata, BenchmarkMetadataResponse } from '../types/benchmark';
+import { BenchmarkMetadataResponse } from '../types/benchmark';
+import { CollapsibleCard } from '../components/ui/card';
+import { DataTable } from '../components/ui/data-table';
 
 const MetadataRepository: React.FC = () => {
   const [metadata, setMetadata] = useState<BenchmarkMetadataResponse | null>(null);
@@ -40,88 +35,6 @@ const MetadataRepository: React.FC = () => {
   useEffect(() => {
     fetchMetadata();
   }, []);
-
-  const formatValue = (value: any): React.ReactNode => {
-    if (value === null || value === undefined) {
-      return '-';
-    }
-    
-    if (typeof value === 'object') {
-      return (
-        <Box sx={{ maxWidth: 300, overflow: 'auto' }}>
-          <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '0.875rem' }}>
-            {JSON.stringify(value, null, 2)}
-          </pre>
-        </Box>
-      );
-    }
-    
-    return String(value);
-  };
-
-  const renderMergedTable = (data: Record<string, any>) => {
-    // Parse all string values that might be JSON
-    const parsedData: Record<string, any> = {};
-    Object.entries(data).forEach(([key, value]) => {
-      if (typeof value === 'string') {
-        try {
-          parsedData[key] = JSON.parse(value);
-        } catch (e) {
-          parsedData[key] = value;
-        }
-      } else {
-        parsedData[key] = value;
-      }
-    });
-
-    // Get all unique indices from all data objects
-    const allIndices = new Set<number>();
-    Object.values(parsedData).forEach(value => {
-      if (typeof value === 'object' && value !== null) {
-        Object.keys(value).forEach(key => {
-          if (!isNaN(Number(key))) {
-            allIndices.add(Number(key));
-          }
-        });
-      }
-    });
-
-    // Sort indices numerically
-    const sortedIndices = Array.from(allIndices).sort((a, b) => a - b);
-
-    return (
-      <TableContainer component={Paper} sx={{ mb: 2 }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Index</TableCell>
-              {Object.keys(parsedData).map((columnName) => (
-                <TableCell key={columnName}>{columnName}</TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {sortedIndices.map((index) => (
-              <TableRow key={index}>
-                <TableCell>{index}</TableCell>
-                {Object.keys(parsedData).map((columnName) => {
-                  const columnData = parsedData[columnName];
-                  const value = typeof columnData === 'object' && columnData !== null
-                    ? columnData[index]
-                    : columnData;
-                  return (
-                    <TableCell key={`${columnName}-${index}`}>
-                      {formatValue(value)}
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    );
-  };
 
   return (
     <Box sx={{ p: 3 }}>
@@ -158,9 +71,15 @@ const MetadataRepository: React.FC = () => {
           </Typography>
           {records.map((record, recordIndex) => (
             record.data && (
-              <Box key={recordIndex}>
-                {renderMergedTable(record.data)}
-              </Box>
+              <CollapsibleCard
+                key={recordIndex}
+                title={`Record ${recordIndex + 1}`}
+                description={`Table: ${tableName}`}
+                defaultCollapsed={true}
+                className="mb-4"
+              >
+                <DataTable data={record.data} />
+              </CollapsibleCard>
             )
           ))}
         </Box>

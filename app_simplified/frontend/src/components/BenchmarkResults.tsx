@@ -11,53 +11,13 @@ import {
     TableHead,
     TableRow,
 } from '@mui/material';
+import { DataTable } from './ui/data-table';
 
 interface BenchmarkResultsProps {
     response: BenchmarkResponse;
 }
 
 const BenchmarkResults: React.FC<BenchmarkResultsProps> = ({ response }) => {
-    const renderDataFrame = (data: any, title: string) => {
-        if (!data || Object.keys(data).length === 0) return null;
-
-        // Handle DataFrame structure
-        const columns = data.columns || [];
-        const rows = data.data || [];
-        const index = data.index || [];
-
-        return (
-            <Box sx={{ mt: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                    {title}
-                </Typography>
-                <TableContainer component={Paper}>
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Index</TableCell>
-                                {columns.map((column: string) => (
-                                    <TableCell key={column}>{column}</TableCell>
-                                ))}
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {rows.map((row: any, i: number) => (
-                                <TableRow key={i}>
-                                    <TableCell>{index[i] || i}</TableCell>
-                                    {columns.map((column: string) => (
-                                        <TableCell key={`${i}-${column}`}>
-                                            {row[column] !== undefined ? String(row[column]) : ''}
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            </Box>
-        );
-    };
-
     const renderConfigTable = (data: any, title: string) => {
         if (!data || Object.keys(data).length === 0) return null;
 
@@ -124,7 +84,14 @@ const BenchmarkResults: React.FC<BenchmarkResultsProps> = ({ response }) => {
                         </Typography>
                     )}
 
-                    {response.data.data && renderDataFrame(response.data.data, 'Benchmark Data')}
+                    {response.data.data && (
+                        <Box sx={{ mt: 3 }}>
+                            <Typography variant="h6" gutterBottom>
+                                Benchmark Data
+                            </Typography>
+                            <DataTable data={response.data.data} />
+                        </Box>
+                    )}
                     
                     {response.data.configuration && renderConfigTable(response.data.configuration, 'Configuration')}
                     
@@ -136,23 +103,59 @@ const BenchmarkResults: React.FC<BenchmarkResultsProps> = ({ response }) => {
 
             {response.database_data && (
                 <Box sx={{ mt: 2 }}>
-                    {response.database_data.keywords && 
-                        renderDataFrame(response.database_data.keywords, 'Keywords')}
+                    {response.database_data.keywords && (
+                        <Box sx={{ mt: 3 }}>
+                            <Typography variant="h6" gutterBottom>
+                                Keywords
+                            </Typography>
+                            <DataTable data={response.database_data.keywords} />
+                        </Box>
+                    )}
                     
-                    {response.database_data.source_finder && 
-                        renderDataFrame(response.database_data.source_finder, 'Source Finder Results')}
+                    {response.database_data.source_finder && (
+                        <Box sx={{ mt: 3 }}>
+                            <Typography variant="h6" gutterBottom>
+                                Source Finder Results
+                            </Typography>
+                            <DataTable data={response.database_data.source_finder} />
+                        </Box>
+                    )}
                     
-                    {response.database_data.scraped_sentences && 
-                        renderDataFrame(response.database_data.scraped_sentences, 'Scraped Sentences')}
+                    {response.database_data.scraped_sentences && (
+                        <Box sx={{ mt: 3 }}>
+                            <Typography variant="h6" gutterBottom>
+                                Scraped Sentences
+                            </Typography>
+                            <DataTable data={response.database_data.scraped_sentences} />
+                        </Box>
+                    )}
                     
-                    {response.database_data.split_sentences && 
-                        renderDataFrame(response.database_data.split_sentences, 'Split Sentences')}
+                    {response.database_data.split_sentences && (
+                        <Box sx={{ mt: 3 }}>
+                            <Typography variant="h6" gutterBottom>
+                                Split Sentences
+                            </Typography>
+                            <DataTable data={response.database_data.split_sentences} />
+                        </Box>
+                    )}
                     
-                    {response.database_data.questions && 
-                        renderDataFrame(response.database_data.questions, 'Generated Questions')}
+                    {response.database_data.questions && (
+                        <Box sx={{ mt: 3 }}>
+                            <Typography variant="h6" gutterBottom>
+                                Generated Questions
+                            </Typography>
+                            <DataTable data={response.database_data.questions} />
+                        </Box>
+                    )}
                     
-                    {response.database_data.replacement_description && 
-                        renderDataFrame(response.database_data.replacement_description, 'Replacement Descriptions')}
+                    {response.database_data.replacement_description && (
+                        <Box sx={{ mt: 3 }}>
+                            <Typography variant="h6" gutterBottom>
+                                Replacement Descriptions
+                            </Typography>
+                            <DataTable data={response.database_data.replacement_description} />
+                        </Box>
+                    )}
                 </Box>
             )}
         </Box>
